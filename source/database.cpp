@@ -280,21 +280,20 @@ bool populate_apps_database(const char *file, bool is_psp) {
 			ptr = get_value_from_json(node->type, ptr, "type", nullptr);
 			ptr = get_value_from_json(node->id, ptr, "id", nullptr);
 			if (!strcmp(node->id, SELF_CATALOG_ID) && strlen(boot_params) == 0) { // NeoVitaDB Downloader, check if newer than running version
-				// A plain string-inequality check here also triggers when the
-				// running build is a local dev version *ahead* of what's
-				// published (e.g. VERSION bumped before the matching release
-				// exists) - it would silently "update" by downloading and
-				// reinstalling the last published (older) release over the
-				// current one. Compare major.minor numerically instead, and
-				// only flag an update when the catalog's version is actually
-				// newer than the one currently running.
+
 				char *catalog_ver = &version[2]; // skip the "v." tag prefix, e.g. "v.2.6" -> "2.6"
 				char *catalog_dot = strchr(catalog_ver, '.');
 				char *local_dot = strchr(VERSION, '.');
 				if (catalog_dot && local_dot) {
 					int catalog_major = atoi(catalog_ver), catalog_minor = atoi(catalog_dot + 1);
 					int local_major = atoi(VERSION), local_minor = atoi(local_dot + 1);
-					if (catalog_major > local_major || (catalog_major == local_major && catalog_minor > local_minor)) {
+					char *catalog_dot2 = strchr(catalog_dot + 1, '.');
+					char *local_dot2 = strchr(local_dot + 1, '.');
+					int catalog_patch = catalog_dot2 ? atoi(catalog_dot2 + 1) : 0;
+					int local_patch = local_dot2 ? atoi(local_dot2 + 1) : 0;
+					if (catalog_major > local_major ||
+						(catalog_major == local_major && catalog_minor > local_minor) ||
+						(catalog_major == local_major && catalog_minor == local_minor && catalog_patch > local_patch)) {
 						update_detected = true;
 						to_download = node;
 					}

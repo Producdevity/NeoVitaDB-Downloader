@@ -159,7 +159,7 @@ vita_create_self(eboot.bin VitaDB UNSAFE)
 vita_create_self(vitadb.skprx vitadb_kernel UNSAFE CONFIG ${CMAKE_SOURCE_DIR}/kernel/exports.yml)
 vita_create_self(vitadb.suprx vitadb_user UNSAFE CONFIG ${CMAKE_SOURCE_DIR}/user/exports.yml)
 vita_create_self(vdb_daemon.suprx vitadb_daemon UNSAFE CONFIG ${CMAKE_SOURCE_DIR}/daemon/exports.yml)
-vita_create_vpk(VitaDB.vpk ${VITA_TITLEID} eboot.bin
+vita_create_vpk(NeoVitaDB.vpk ${VITA_TITLEID} eboot.bin
 	VERSION ${VITA_VERSION}
 	NAME ${VITA_APP_NAME}
 	FILE ${CMAKE_SOURCE_DIR}/livearea/icon0.png sce_sys/icon0.png

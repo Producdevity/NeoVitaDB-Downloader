@@ -74,6 +74,14 @@ It's also possible to add more blacklisted homebrews (for example, if you use a 
 
 ## Changelog
 
+### v.2.8.0
+- Fixed themes potentially corrupting `theme.ini` into a multi-gigabyte file and crashing the app
+  on every subsequent launch, if a theme download failed partway (e.g. hitting GitHub's rate
+  limit). Theme downloads and installs now fail cleanly with an error message instead.
+- Fixed a stack buffer overflow when parsing a malformed or corrupted `theme.ini`.
+- Self-update version checks now compare major.minor.**patch** instead of just major.minor, so a
+  future patch release (e.g. v.2.8.1) is correctly detected as newer and can be installed in-app.
+
 ### v.2.7
 - Added an in-app catalog switcher: a dropdown next to the Search bar lets you change which
   catalog the app uses at any time, with the official NeoVitaDB catalog always listed first.
@@ -129,11 +137,10 @@ unexpectedly — try deleting `ux0:data/NeoVitaDB` entirely over FTP/VitaShell a
 recreate it from scratch on next boot. This only clears cached catalog data, icons and your local
 customizations (themes/backgrounds/favorites); it does not touch your installed homebrews.
 
-> ⚠️ **Known issue in v.2.7 — avoid downloading/installing themes.** A theme download that fails
-> (e.g. hitting GitHub's rate limit) can corrupt `theme.ini`, leading to a multi-gigabyte file that
-> fills your storage and makes the app crash on every subsequent launch. If you're on v.2.7, please
-> avoid the Themes Manager for now. A fix is already prepared and will ship in the next release; if
-> you're affected, deleting `ux0:data/NeoVitaDB/theme.ini` over FTP/VitaShell resolves it.
+> ⚠️ **If you're on v.2.7, update to v.2.8.0.** A theme download that fails (e.g. hitting GitHub's
+> rate limit) could corrupt `theme.ini` into a multi-gigabyte file, filling your storage and making
+> the app crash on every subsequent launch. This is fixed in v.2.8.0. If you're already affected,
+> deleting `ux0:data/NeoVitaDB/theme.ini` over FTP/VitaShell resolves it.
 
 ### v.2.6
 This is the first release under the new NeoVitaDB name, after the original rinnegatamante.eu
