@@ -129,6 +129,12 @@ unexpectedly — try deleting `ux0:data/NeoVitaDB` entirely over FTP/VitaShell a
 recreate it from scratch on next boot. This only clears cached catalog data, icons and your local
 customizations (themes/backgrounds/favorites); it does not touch your installed homebrews.
 
+> ⚠️ **Known issue in v.2.7 — avoid downloading/installing themes.** A theme download that fails
+> (e.g. hitting GitHub's rate limit) can corrupt `theme.ini`, leading to a multi-gigabyte file that
+> fills your storage and makes the app crash on every subsequent launch. If you're on v.2.7, please
+> avoid the Themes Manager for now. A fix is already prepared and will ship in the next release; if
+> you're affected, deleting `ux0:data/NeoVitaDB/theme.ini` over FTP/VitaShell resolves it.
+
 ### v.2.6
 This is the first release under the new NeoVitaDB name, after the original rinnegatamante.eu
 backend that VitaDB Downloader relied on shut down.
