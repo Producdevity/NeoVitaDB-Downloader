@@ -90,10 +90,12 @@ struct AppSelection {
 	char *requirements;
 	char data_link[128];
 	char url[256];
+	char folder[64]; // PSP only: the ux0:pspemu/PSP/GAME/<folder> the release's own zip structure expects, e.g. "APOLLO"
 	int state;
 	bool trophies;
 	bool ai;
 	bool trusted;
+	bool direct;
 	bool favorites;
 	bool search_filtered;
 	uint8_t blacklisted;
@@ -129,15 +131,20 @@ extern bool update_detected;
 char *get_changelog(const char *file, char *id);
 
 bool populate_apps_database(const char *file, bool is_psp);
+
+bool populate_apps_database_vitadb_legacy(const char *file, bool is_psp);
 void populate_themes_database(const char *file);
+
+
+void reset_apps_database(bool is_psp);
 
 void populate_daemon_blacklist();
 void insert_daemon_blacklist(char *tid);
 void remove_daemon_blacklist(char *tid);
 
 void populate_favorites();
-void insert_favorites(char *tid);
-void remove_favorites(char *tid);
+void insert_favorites(char *tid, bool is_psp);
+void remove_favorites(char *tid, bool is_psp);
 
 void sort_apps_list(AppSelection **start, int sort_idx);
 void sort_themes_list(ThemeSelection **start, int sort_idx);

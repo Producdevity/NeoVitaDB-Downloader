@@ -63,6 +63,8 @@ int cur_ss_idx;
 int old_ss_idx = -1;
 static char download_link[512];
 char app_name_filter[128] = {0};
+char pending_catalog_switch[224] = {0};
+bool psp_apps_fetch_failed = false;
 char boot_params[1024] = {};
 SceUID audio_thd = -1;
 void *audio_buffer = nullptr;
@@ -116,8 +118,10 @@ void load_preview(AppSelection *game) {
 		ThemeSelection *g = (ThemeSelection *)game;
 		sprintf(banner_path, "ux0:data/NeoVitaDB/previews/%s.png", g->name);
 	} else
-		sprintf(banner_path, "ux0:data/NeoVitaDB/icons/%c%c/%s", game->icon[0], game->icon[1], game->icon);
+		sprintf(banner_path, "%sicons/%c%c/%s", catalog_dir, game->icon[0], game->icon[1], game->icon);
 	uint8_t *icon_data = stbi_load(banner_path, &preview_width, &preview_height, NULL, 4);
+	if (!icon_data) // missing/corrupt/never-downloaded icon (e.g. a 404 on the catalog) - fall back to our own icon rather than feeding a null/zero-size image to vitaGL
+		icon_data = stbi_load("app0:icon0.png", &preview_width, &preview_height, NULL, 4);
 	if (!preview_icon)
 		glGenTextures(1, &preview_icon);
 	glTextureImage2D(preview_icon, 0, GL_RGBA, preview_width, preview_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, icon_data);
@@ -144,7 +148,7 @@ void LoadScreenshot() {
 	old_ss_idx = cur_ss_idx;
 	
 	char banner_path[256];
-	sprintf(banner_path, "ux0:data/NeoVitaDB/ss%d.png", cur_ss_idx);
+	sprintf(banner_path, "%sss%d.png", catalog_dir, cur_ss_idx);
 	int w, h;
 	uint8_t *shot_data = stbi_load(banner_path, &w, &h, NULL, 4);
 	while (!shot_data) {
@@ -154,7 +158,7 @@ void LoadScreenshot() {
 		} else if (cur_ss_idx > 3) {
 			cur_ss_idx = 0;
 		}
-		sprintf(banner_path, "ux0:data/NeoVitaDB/ss%d.png", cur_ss_idx);
+		sprintf(banner_path, "%sss%d.png", catalog_dir, cur_ss_idx);
 		shot_data = stbi_load(banner_path, &w, &h, NULL, 4);
 	}
 	if (!preview_shot)
@@ -190,7 +194,7 @@ int trophy_loader(unsigned int args, void *arg) {
 			break;
 		int w, h;
 		char fname[256];
-		sprintf(fname, "ux0:data/NeoVitaDB/trophies/%s/%s", t->titleid, t->icon_name);
+		sprintf(fname, "%strophies/%s/%s", catalog_dir, t->titleid, t->icon_name);
 		GLuint res;
 		glGenTextures(1, &res);
 		uint8_t *icon_data = stbi_load(fname, &w, &h, NULL, 4);
@@ -204,7 +208,7 @@ int trophy_loader(unsigned int args, void *arg) {
 
 void PrepareTrophy(const char *tid, const char *name, int index, int count) {
 	char fname[256], dl_url[256];
-	sprintf(fname, "ux0:data/NeoVitaDB/trophies/%s/%s", tid, name);
+	sprintf(fname, "%strophies/%s/%s", catalog_dir, tid, name);
 	SceIoStat st;
 	if (sceIoGetstat(fname, &st) < 0) {
 		sprintf(dl_url, CATALOG_TROPHY_ICON_FMT, name);
@@ -729,7 +733,7 @@ int main(int argc, char *argv[]) {
 	scePowerSetBusClockFrequency(222);
 	sceIoMkdir("ux0:data", 0777);
 	sceIoMkdir("ux0:data/NeoVitaDB", 0777);
-	sceIoMkdir("ux0:data/NeoVitaDB/trophies", 0777);
+	init_catalog(); // reads catalog.cfg, builds catalog_base/catalog_dir/CATALOG_*, migrates legacy data
 	sceIoMkdir("ux0:pspemu", 0777);
 	sceIoMkdir("ux0:pspemu/PSP", 0777);
 	sceIoMkdir("ux0:pspemu/PSP/GAME", 0777);
@@ -991,9 +995,10 @@ extract_libshacccg:
 	}
 	
 
-	sceIoMkdir("ux0:data/NeoVitaDB/icons", 0777);
-	if (sceIoGetstat("ux0:/data/NeoVitaDB/icons.db", &st) < 0) {
-		SceUID idx = sceIoOpen("ux0:data/NeoVitaDB/icons.db", SCE_O_WRONLY | SCE_O_CREAT | SCE_O_TRUNC, 0777);
+	char icons_db_path[288];
+	sprintf(icons_db_path, "%sicons.db", catalog_dir);
+	if (sceIoGetstat(icons_db_path, &st) < 0) {
+		SceUID idx = sceIoOpen(icons_db_path, SCE_O_WRONLY | SCE_O_CREAT | SCE_O_TRUNC, 0777);
 		sceIoClose(idx);
 	}
 	
@@ -1004,8 +1009,10 @@ extract_libshacccg:
 	// Downloading apps list
 	bool is_vitadb_online = true;
 	sceAppMgrUmount("app0:");
+	char apps_json_path[288];
+	sprintf(apps_json_path, "%sapps.json", catalog_dir);
 	if (strlen(boot_params) == 0) {
-		if (!(pad.buttons & SCE_CTRL_RTRIGGER) || sceIoGetstat("ux0:data/NeoVitaDB/apps.json", &st) < 0) {
+		if (!(pad.buttons & SCE_CTRL_RTRIGGER) || sceIoGetstat(apps_json_path, &st) < 0) {
 			SceUID thd = sceKernelCreateThread("Apps List Downloader", &appListThread, 0x10000100, 0x100000, 0, 0, NULL);
 			sceKernelStartThread(thd, 0, NULL);
 			do {
@@ -1015,11 +1022,40 @@ extract_libshacccg:
 
 			sceKernelWaitThreadEnd(thd, NULL, NULL);
 		}
-		is_vitadb_online = populate_apps_database("ux0:data/NeoVitaDB/apps.json", false);
+		is_vitadb_online = using_vitadb_legacy ? populate_apps_database_vitadb_legacy(apps_json_path, false) : populate_apps_database(apps_json_path, false);
 	} else {
-		is_vitadb_online = populate_apps_database("ux0:data/NeoVitaDB.json", false);
+		char daemon_json_path[288];
+		sprintf(daemon_json_path, "%sNeoVitaDB.json", catalog_dir);
+		is_vitadb_online = using_vitadb_legacy ? populate_apps_database_vitadb_legacy(daemon_json_path, false) : populate_apps_database(daemon_json_path, false);
 	}
 	
+
+	if (!is_vitadb_online && strcmp(catalog_base, OFFICIAL_CATALOG_BASE)) {
+		sceIoRemove("ux0:data/NeoVitaDB/catalog.cfg");
+		SceUID cfg_fd = sceIoOpen("ux0:data/NeoVitaDB/catalog.cfg", SCE_O_WRONLY | SCE_O_CREAT, 0777);
+		sceIoWrite(cfg_fd, OFFICIAL_CATALOG_BASE, strlen(OFFICIAL_CATALOG_BASE));
+		sceIoClose(cfg_fd);
+		init_catalog();
+
+		if (strlen(boot_params) == 0) {
+			sprintf(apps_json_path, "%sapps.json", catalog_dir);
+			if (sceIoGetstat(apps_json_path, &st) < 0) {
+				SceUID thd = sceKernelCreateThread("Apps List Downloader", &appListThread, 0x10000100, 0x100000, 0, 0, NULL);
+				sceKernelStartThread(thd, 0, NULL);
+				do {
+					draw_downloader_dialog(downloader_pass, downloaded_bytes, total_bytes, "Downloading apps list", 1, true);
+					res = sceKernelGetThreadInfo(thd, &info);
+				} while (info.status <= SCE_THREAD_DORMANT && res >= 0);
+				sceKernelWaitThreadEnd(thd, NULL, NULL);
+			}
+			is_vitadb_online = populate_apps_database(apps_json_path, false);
+		} else {
+			char daemon_json_path[288];
+			sprintf(daemon_json_path, "%sNeoVitaDB.json", catalog_dir);
+			is_vitadb_online = populate_apps_database(daemon_json_path, false);
+		}
+	}
+
 	if (!is_vitadb_online) {
 		init_msg_dialog("VitaDB is offline. Please try again later.");
 		int status = sceMsgDialogGetStatus();
@@ -1102,7 +1138,7 @@ extract_libshacccg:
 		ImGui::Text("Search: ");
 		ImGui::SameLine();
 		ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(0.0f, 0.5f));
-		if (ImGui::Button(app_name_filter, ImVec2(-1.0f, 0.0f))) {
+		if (ImGui::Button(app_name_filter, ImVec2(-200.0f, 0.0f))) {
 			init_interactive_ime_dialog("Insert search term", app_name_filter);
 		}
 		if (ImGui::IsItemHovered()) {
@@ -1117,6 +1153,57 @@ extract_libshacccg:
 			old_hovered = nullptr;
 		}
 		ImGui::PopStyleVar();
+		ImGui::SameLine();
+		ImGui::PushItemWidth(190.0f);
+
+		const char *current_catalog_label = OFFICIAL_CATALOG_NAME;
+		if (!strcmp(catalog_base, VITADB_LEGACY_BASE)) {
+			current_catalog_label = VITADB_LEGACY_NAME;
+		} else if (strcmp(catalog_base, OFFICIAL_CATALOG_BASE)) {
+			current_catalog_label = catalog_base;
+			for (auto &c : custom_catalogs) {
+				if (c.url == catalog_base) {
+					current_catalog_label = c.alias.empty() ? c.url.c_str() : c.alias.c_str();
+					break;
+				}
+			}
+		}
+		if (ImGui::BeginCombo("##catalog_combo", current_catalog_label)) {
+			bool is_selected = !strcmp(catalog_base, OFFICIAL_CATALOG_BASE);
+			if (ImGui::Selectable(OFFICIAL_CATALOG_NAME, is_selected)) {
+
+				memset(pending_catalog_switch, 0, sizeof(pending_catalog_switch));
+				sprintf(pending_catalog_switch, "%s", OFFICIAL_CATALOG_BASE);
+			}
+			if (is_selected)
+				ImGui::SetItemDefaultFocus();
+			is_selected = !strcmp(catalog_base, VITADB_LEGACY_BASE);
+			if (ImGui::Selectable(VITADB_LEGACY_NAME, is_selected)) {
+				memset(pending_catalog_switch, 0, sizeof(pending_catalog_switch));
+				sprintf(pending_catalog_switch, "%s", VITADB_LEGACY_BASE);
+			}
+			if (is_selected)
+				ImGui::SetItemDefaultFocus();
+			int catalog_idx = 0;
+			for (auto &custom_catalog : custom_catalogs) {
+				is_selected = custom_catalog.url == catalog_base;
+				char label[256];
+
+				sprintf(label, "%s##cc%d", custom_catalog.alias.empty() ? custom_catalog.url.c_str() : custom_catalog.alias.c_str(), catalog_idx++);
+				if (ImGui::Selectable(label, is_selected)) {
+					memset(pending_catalog_switch, 0, sizeof(pending_catalog_switch));
+					sprintf(pending_catalog_switch, "%s", custom_catalog.url.c_str());
+				}
+				if (is_selected)
+					ImGui::SetItemDefaultFocus();
+			}
+			ImGui::EndCombo();
+		}
+		if (ImGui::IsItemHovered()) {
+			hovered = nullptr;
+			old_hovered = nullptr;
+		}
+		ImGui::PopItemWidth();
 		ImGui::AlignTextToFramePadding();
 		if (text_diff_len == 0.0f)
 			text_diff_len = ImGui::CalcTextSize("Search: ").x - ImGui::CalcTextSize("Filter: ").x;
@@ -1495,6 +1582,14 @@ extract_libshacccg:
 					} else {
 						ImGui::Text(hovered->titleid);
 					}
+					if (hovered->trusted) {
+						ImGui::SetCursorPosY(72);
+						ImGui::SetCursorPosX(320);
+						ImGui::TextColored(TextUpdated, "Trusted");
+					}
+					ImGui::SetCursorPosY(88);
+					ImGui::SetCursorPosX(320);
+					ImGui::TextColored(TextLabel, hovered->ai ? "Uses AI" : "");
 					if (hovered->state != APP_UNTRACKED) {
 						ImGui::SetCursorPosY(132);
 						ImGui::SetCursorPosX(320);
@@ -1504,6 +1599,12 @@ extract_libshacccg:
 							ImGui::TextColored(TextOutdated, "Blacklisted");
 						}
 					}
+				}
+				if (hovered->direct) {
+
+					ImGui::SetCursorPosY(104);
+					ImGui::SetCursorPosX(320);
+					ImGui::TextColored(TextUpdated, "Direct Download");
 				}
 				ImGui::SetCursorPosY(38);
 				ImGui::SetCursorPosX(mode_idx == MODE_VITA_HBS ? 140 : 156);
@@ -1623,9 +1724,9 @@ extract_libshacccg:
 			if (mode_idx != MODE_THEMES) {
 				if (ImGui::Button(hovered->favorites ? "Remove from Favorites": "Add to Favorites", ImVec2(-1.0f, 0.0f))) {
 					if (hovered->favorites) {
-						remove_favorites(hovered->id);
+						remove_favorites(hovered->id, mode_idx == MODE_PSP_HBS);
 					} else {
-						insert_favorites(hovered->id);
+						insert_favorites(hovered->id, mode_idx == MODE_PSP_HBS);
 					}
 					hovered->favorites = !hovered->favorites;
 					extra_menu_invoked = false;
@@ -1712,7 +1813,9 @@ extract_libshacccg:
 			}
 			if (ImGui::Button("View Changelog", ImVec2(-1.0f, 0.0f))) {
 				show_changelog = true;
-				changelog = get_changelog("ux0:data/NeoVitaDB/apps.json", hovered->id);
+				char apps_json_path[288];
+				sprintf(apps_json_path, "%sapps.json", catalog_dir);
+				changelog = get_changelog(apps_json_path, hovered->id);
 			}
 			ImGui::End();
 		}
@@ -2025,8 +2128,10 @@ extract_libshacccg:
 										copy_file(TEMP_DOWNLOAD_NAME, "ur0:tai/kubridge.skprx");
 										sceIoRemove(TEMP_DOWNLOAD_NAME);
 										SceUID f = sceIoOpen("ur0:tai/config.txt", SCE_O_RDONLY, 0777);
-										size_t len = sceIoRead(f, generic_mem_buffer, MEM_BUFFER_SIZE);
+
+										int len_ret = sceIoRead(f, generic_mem_buffer, MEM_BUFFER_SIZE);
 										sceIoClose(f);
+										size_t len = len_ret < 0 ? 0 : (size_t)len_ret;
 										sprintf(user_plugin_str, "*KERNEL\nur0:tai/kubridge.skprx\n");
 										f = sceIoOpen("ur0:tai/config.txt", SCE_O_CREAT | SCE_O_TRUNC | SCE_O_WRONLY, 0777);
 										sceIoWrite(f, user_plugin_str, strlen(user_plugin_str));
@@ -2037,8 +2142,9 @@ extract_libshacccg:
 										sceIoRemove("ux0:tai/kubridge.skprx"); // Just to be safe
 										sceIoRename(TEMP_DOWNLOAD_NAME, "ux0:tai/kubridge.skprx");
 										SceUID f = sceIoOpen("ux0:tai/config.txt", SCE_O_RDONLY, 0777);
-										size_t len = sceIoRead(f, generic_mem_buffer, MEM_BUFFER_SIZE);
+										int len_ret = sceIoRead(f, generic_mem_buffer, MEM_BUFFER_SIZE);
 										sceIoClose(f);
+										size_t len = len_ret < 0 ? 0 : (size_t)len_ret; // see the ur0 branch above
 										sprintf(user_plugin_str, "*KERNEL\nux0:tai/kubridge.skprx\n");
 										f = sceIoOpen("ux0:tai/config.txt", SCE_O_TRUNC | SCE_O_CREAT | SCE_O_WRONLY, 0777);
 										sceIoWrite(f, user_plugin_str, strlen(user_plugin_str));
@@ -2217,16 +2323,34 @@ extract_libshacccg:
 						}
 						f = sceIoOpen(HASH_FILE, SCE_O_WRONLY | SCE_O_TRUNC | SCE_O_CREAT, 0777);
 					} else {
-						sprintf(tmp_path, "%spspemu/PSP/GAME/%s", pspemu_dev, to_download->id);
-						sceIoMkdir(tmp_path, 0777);
-						bool extract_finished = extract_psarc_file(TEMP_DOWNLOAD_NAME, tmp_path, true, anti_burn_in_texture);
+						if (!to_download->folder[0]) {
+
+							sceIoRemove(TEMP_DOWNLOAD_NAME);
+							to_download = nullptr;
+							continue;
+						}
+
+						uint32_t header;
+						f = sceIoOpen(TEMP_DOWNLOAD_NAME, SCE_O_RDONLY, 0777);
+						sceIoRead(f, &header, 4);
+						sceIoClose(f);
+						sprintf(tmp_path, "%spspemu/PSP/GAME", pspemu_dev);
+						bool extract_finished;
+						if (header == 0x52415350) { // PSARC
+							extract_finished = extract_psarc_file(TEMP_DOWNLOAD_NAME, tmp_path, true, anti_burn_in_texture);
+						} else { // ZIP
+							char psp_game_path[272];
+							sprintf(psp_game_path, "%s/", tmp_path);
+							extract_finished = extract_zip_file(TEMP_DOWNLOAD_NAME, psp_game_path, false, true);
+						}
 						sceIoRemove(TEMP_DOWNLOAD_NAME);
+						sprintf(tmp_path, "%spspemu/PSP/GAME/%s", pspemu_dev, to_download->folder);
 						if (!extract_finished) {
 							recursive_rmdir(tmp_path);
 							to_download = nullptr;
 							continue;
 						}
-						sprintf(tmp_path, "%spspemu/PSP/GAME/%s/hash.vdb", pspemu_dev, to_download->id);
+						sprintf(tmp_path, "%spspemu/PSP/GAME/%s/hash.vdb", pspemu_dev, to_download->folder);
 						f = sceIoOpen(tmp_path, SCE_O_WRONLY | SCE_O_TRUNC | SCE_O_CREAT, 0777);
 					}
 					sceIoWrite(f, to_download->hash, 32);
@@ -2288,7 +2412,7 @@ skip_install:
 		if (trophies_feature == FEATURE_LOADING) {
 			setup_anti_burn_in();
 			char dl_url[512];
-			sprintf(dl_url, "ux0:data/NeoVitaDB/trophies/%s", hovered->titleid);
+			sprintf(dl_url, "%strophies/%s", catalog_dir, hovered->titleid);
 			sceIoMkdir(dl_url, 0777);
 			sprintf(dl_url, CATALOG_TROPHIES_FMT, hovered->titleid);
 			download_file(dl_url, "Downloading trophies data", false, -1, -1, anti_burn_in_texture);
@@ -2370,18 +2494,20 @@ skip_install:
 		// Queued screenshots download
 		if (screenshots_feature == FEATURE_LOADING) {
 			setup_anti_burn_in();
-			sceIoRemove("ux0:data/NeoVitaDB/ss0.png");
-			sceIoRemove("ux0:data/NeoVitaDB/ss1.png");
-			sceIoRemove("ux0:data/NeoVitaDB/ss2.png");
-			sceIoRemove("ux0:data/NeoVitaDB/ss3.png");
+			char ss_path[288];
+			for (int i = 0; i < 4; i++) {
+				sprintf(ss_path, "%sss%d.png", catalog_dir, i);
+				sceIoRemove(ss_path);
+			}
 			old_ss_idx = -1;
 			cur_ss_idx = 0;
 			int shot_idx = 0;
 			if (mode_idx == MODE_THEMES) {
 				ThemeSelection *node = (ThemeSelection *)hovered;
-				sprintf(download_link, "https://github.com/CatoTheYounger97/vitaDB_themes/raw/main/themes/%s/preview.png", node->name);				
+				sprintf(download_link, "https://github.com/CatoTheYounger97/vitaDB_themes/raw/main/themes/%s/preview.png", node->name);
 				download_file(download_link, "Downloading screenshot", false, -1, -1, anti_burn_in_texture);
-				sceIoRename(TEMP_DOWNLOAD_NAME, "ux0:data/NeoVitaDB/ss0.png");
+				sprintf(ss_path, "%sss0.png", catalog_dir);
+				sceIoRename(TEMP_DOWNLOAD_NAME, ss_path);
 			} else {
 				char *s = hovered->screenshots;
 				char shot_links[4][256];
@@ -2401,7 +2527,7 @@ skip_install:
 				}
 				while (shot_idx < shot_num) {
 					download_file(shot_links[shot_idx], "Downloading screenshot", false, shot_idx + 1, shot_num, anti_burn_in_texture);
-					sprintf(shot_links[shot_idx], "ux0:data/NeoVitaDB/ss%d.png", shot_idx);
+					sprintf(shot_links[shot_idx], "%sss%d.png", catalog_dir, shot_idx);
 					sceIoRename(TEMP_DOWNLOAD_NAME, shot_links[shot_idx++]);
 				}
 			}
@@ -2414,7 +2540,81 @@ skip_install:
 			install_theme(to_install);
 			to_install = nullptr;
 		}
-		
+
+		// Queued catalog switch, set by the dropdown next to the search bar.
+		if (pending_catalog_switch[0]) {
+			setup_anti_burn_in();
+
+
+			char previous_catalog_base[CATALOG_BASE_SIZE];
+			strcpy(previous_catalog_base, catalog_base);
+
+
+			sceIoRemove("ux0:data/NeoVitaDB/catalog.cfg");
+			SceUID cfg_fd = sceIoOpen("ux0:data/NeoVitaDB/catalog.cfg", SCE_O_WRONLY | SCE_O_CREAT, 0777);
+			sceIoWrite(cfg_fd, pending_catalog_switch, strlen(pending_catalog_switch));
+			sceIoClose(cfg_fd);
+			init_catalog(); // rebuilds catalog_base/catalog_dir/CATALOG_* for the new catalog; safe to call again mid-session
+
+
+			reset_apps_database(false);
+			reset_apps_database(true); // psp_apps left null: re-fetched lazily next time PSP mode is opened, same as at boot
+			psp_apps_fetch_failed = false;
+			hovered = nullptr; // all three pointed into the list just freed above
+			old_hovered = nullptr;
+			to_download = nullptr;
+			to_uninstall = nullptr;
+
+			char icons_db_path[288];
+			sprintf(icons_db_path, "%sicons.db", catalog_dir);
+			if (sceIoGetstat(icons_db_path, &st) < 0) {
+				SceUID idx = sceIoOpen(icons_db_path, SCE_O_WRONLY | SCE_O_CREAT | SCE_O_TRUNC, 0777);
+				sceIoClose(idx);
+			}
+			populate_daemon_blacklist();
+			populate_favorites();
+
+			char apps_json_path[288];
+			sprintf(apps_json_path, "%sapps.json", catalog_dir);
+			SceUID thd = sceKernelCreateThread("Apps List Downloader", &appListThread, 0x10000100, 0x100000, 0, 0, NULL);
+			sceKernelStartThread(thd, 0, NULL);
+			do {
+				draw_downloader_dialog(downloader_pass, downloaded_bytes, total_bytes, "Downloading apps list", 1, true, anti_burn_in_texture);
+				res = sceKernelGetThreadInfo(thd, &info);
+			} while (info.status <= SCE_THREAD_DORMANT && res >= 0);
+
+			sceKernelWaitThreadEnd(thd, NULL, NULL);
+			bool switch_ok = using_vitadb_legacy ? populate_apps_database_vitadb_legacy(apps_json_path, false) : populate_apps_database(apps_json_path, false);
+			if (!switch_ok) {
+				init_msg_dialog("The selected catalog is offline or unreachable. Reverting to the previous catalog.");
+				while (sceMsgDialogGetStatus() != SCE_COMMON_DIALOG_STATUS_FINISHED) {
+					draw_simple_texture(anti_burn_in_texture);
+					vglSwapBuffers(GL_TRUE);
+				}
+				sceMsgDialogTerm();
+
+
+				sceIoRemove("ux0:data/NeoVitaDB/catalog.cfg");
+				cfg_fd = sceIoOpen("ux0:data/NeoVitaDB/catalog.cfg", SCE_O_WRONLY | SCE_O_CREAT, 0777);
+				sceIoWrite(cfg_fd, previous_catalog_base, strlen(previous_catalog_base));
+				sceIoClose(cfg_fd);
+				init_catalog();
+				reset_apps_database(false);
+				reset_apps_database(true);
+				psp_apps_fetch_failed = false;
+				hovered = nullptr;
+				old_hovered = nullptr;
+				to_download = nullptr;
+				to_uninstall = nullptr;
+				populate_daemon_blacklist();
+				populate_favorites();
+				sprintf(apps_json_path, "%sapps.json", catalog_dir);
+				using_vitadb_legacy ? populate_apps_database_vitadb_legacy(apps_json_path, false) : populate_apps_database(apps_json_path, false);
+			}
+
+			memset(pending_catalog_switch, 0, sizeof(pending_catalog_switch));
+		}
+
 		// Queued themes database download
 		if (mode_idx == MODE_THEMES && !themes) {
 			setup_anti_burn_in();
@@ -2430,7 +2630,7 @@ skip_install:
 		}
 		
 		// PSP database update required
-		if (mode_idx == MODE_PSP_HBS && !psp_apps) {
+		if (mode_idx == MODE_PSP_HBS && !psp_apps && !psp_apps_fetch_failed) {
 			setup_anti_burn_in();
 			SceUID thd = sceKernelCreateThread("Apps List Downloader", &appPspListThread, 0x10000100, 0x100000, 0, 0, NULL);
 			sceKernelStartThread(thd, 0, NULL);
@@ -2440,7 +2640,21 @@ skip_install:
 			} while (info.status <= SCE_THREAD_DORMANT && res >= 0);
 
 			sceKernelWaitThreadEnd(thd, NULL, NULL);
-			populate_apps_database("ux0:data/NeoVitaDB/psp_apps.json", true);
+			char psp_apps_json_path[288];
+			sprintf(psp_apps_json_path, "%spsp_apps.json", catalog_dir);
+			bool psp_ok = using_vitadb_legacy ? populate_apps_database_vitadb_legacy(psp_apps_json_path, true) : populate_apps_database(psp_apps_json_path, true);
+
+			if (!psp_apps) {
+				psp_apps_fetch_failed = true;
+				if (!psp_ok) {
+					init_msg_dialog("Failed to download the PSP apps list. Please try again later.");
+					while (sceMsgDialogGetStatus() != SCE_COMMON_DIALOG_STATUS_FINISHED) {
+						draw_simple_texture(anti_burn_in_texture);
+						vglSwapBuffers(GL_TRUE);
+					}
+					sceMsgDialogTerm();
+				}
+			}
 		}
 	}
 

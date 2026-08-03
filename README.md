@@ -27,6 +27,40 @@ NeoVitaDB Downloader is a PSVita/PSTV homebrew client, a fork of Rinnegatamante'
 - Support for PSP homebrews.
 - Daemon support for homebrews update check in background during normal console usage.
 
+## Using a Custom Catalog
+By default, NeoVitaDB Downloader fetches its app lists, icons, screenshots and trophies from the
+official [NeoVitaDB-Catalog](https://github.com/robin994/NeoVitaDB-Catalog). A dropdown next to
+the Search bar lets you switch between catalogs at any time — the official NeoVitaDB catalog and
+the original VitaDB (rinnegatamante.eu) backend are always listed first, followed by any custom
+catalogs you've added. Switching downloads that catalog's app list right away if it's never been
+used before, or reloads it instantly if it has.
+
+To make a custom catalog show up in that dropdown, create `ux0:data/NeoVitaDB/catalogs.cfg` and
+list one catalog per line, either as just a URL or as `Alias|URL` if you want a short name to show
+up in the dropdown instead of the full URL:
+```
+https://your-username.github.io/NeoVitaDB-Catalog
+My Friend's Catalog|https://someone-else.github.io/NeoVitaDB-Catalog
+```
+There's no in-app way to add entries to this list for now — edit the file over FTP/USB with
+VitaShell (same as customizing `daemon_blacklist.txt` or `theme.ini`) and restart the app; the
+dropdown itself is how you then switch between whatever's in it. See
+[`catalogs.cfg.example`](catalogs.cfg.example) in this repo for a ready-to-edit starting point —
+just fill in real catalog URLs and copy it to `ux0:data/NeoVitaDB/catalogs.cfg`.
+
+**A custom catalog only works if it's a fork of NeoVitaDB-Catalog that keeps its data structure
+unchanged** (same `vita.json`/`psp.json` schema, same `icons.db`/`icons/` layout, same
+`trophies/` layout). The app talks to whatever URL you give it by building requests exactly the
+way it does for the official catalog, so anything that doesn't lay data out identically won't
+work. Bootstrap files needed before any catalog is even parsed (`libshacccg.suprx`'s
+PSM-runtime-extraction chain, `kubridge.skprx`) always come from the official catalog regardless
+of `catalog.cfg` — a custom catalog isn't expected to mirror those.
+
+Each catalog you point the app at gets its own isolated storage under
+`ux0:data/NeoVitaDB/catalogs/`, so app lists, icons, favorites, and the daemon blacklist from one
+catalog never mix with another's — switching `catalog.cfg` back and forth doesn't lose or corrupt
+either one's data.
+
 ## Themes
 You can find some themes usable with this application on [this repository](https://github.com/CatoTheYounger97/vitaDB_themes).
 Those themes can also be accessed in the app itself by pressing L. While in Themes Manager mode, you can download themes by pressing X and install themes in two different ways (that can be interchanged by pressing Select):
@@ -39,6 +73,58 @@ By default, a couple of homebrews are blacklisted from this process either cause
 It's also possible to add more blacklisted homebrews (for example, if you use a modded build which would be tagged as outdated by VitaDB Downloader). To do so, create the file `ux0:data/NeoVitaDB/daemon_blacklist.txt` and add inside it a list of Title ID of the homebrews you want to blacklist in this format `ABCD12345;ABCD12346;ABCD12347`.
 
 ## Changelog
+
+### v.2.7
+- Added an in-app catalog switcher: a dropdown next to the Search bar lets you change which
+  catalog the app uses at any time, with the official NeoVitaDB catalog always listed first.
+- Added the original VitaDB (rinnegatamante.eu) backend as a second always-available catalog
+  choice in that same dropdown, for anyone who wants to browse and download from it now that it's
+  back online, alongside the official NeoVitaDB catalog and any custom ones you've added.
+- Added support for custom catalogs via `ux0:data/NeoVitaDB/catalogs.cfg`, listing any
+  NeoVitaDB-Catalog-compatible fork you want to be able to switch to from that dropdown.
+- Added optional aliases for custom catalogs (`Alias|URL` in `catalogs.cfg`), so the dropdown can
+  show a short name instead of the full URL.
+- Switching catalogs now automatically downloads that catalog's app list and icons if it's never
+  been used before, or reloads it instantly if it has, without needing to restart the app.
+- Each catalog keeps its own isolated app list, icons, favorites and daemon blacklist, so switching
+  back and forth between catalogs never mixes or loses either one's data.
+- Added PSP homebrew support: browse, download and install PSP homebrews from the catalog, the
+  same way as PSVITA ones.
+- Added "Trusted by the community" and "Uses AI"/"Does not use AI" labels shown for an app when
+  hovering it.
+- Fixed the app incorrectly re-downloading and reinstalling an older published release over itself
+  whenever its version didn't exactly match the catalog's, including when the installed build was
+  already newer than what the catalog listed.
+- Fixed a potential crash when an app's icon is missing or fails to download from the catalog
+  (e.g. a broken link): the app now falls back to showing its own icon instead.
+- Fixed `catalog.cfg` breaking if it ended up with more than one line in it — it's meant to hold a
+  single catalog URL; use `catalogs.cfg` (plural) instead to list several catalogs.
+- Fixed `catalog.cfg` ending up with leftover bytes from a previously selected, longer catalog URL
+  appended to a shorter one picked afterwards, corrupting the saved URL.
+- Fixed installation getting stuck at a fixed percentage forever on a truncated or corrupted
+  download, instead of failing with an error.
+- Fixed potential corruption of `tai/config.txt` (and other on-device files read back before being
+  rewritten, such as the icon manifest) on a failed read.
+- Fixed the app getting stuck exiting immediately on every launch if the currently selected catalog
+  became unreachable, with no way back into the UI to pick a different one — it now automatically
+  falls back to the official catalog instead.
+- Fixed a failed in-app catalog switch leaving the app on a broken, empty catalog with no way to
+  recover short of editing `catalog.cfg` manually — it now reverts to the previously working one.
+- Fixed the PSP apps list failing to download (and silently retrying every single frame for as
+  long as PSP mode stayed open) due to a leftover HTTP status code carried over from an unrelated,
+  earlier download.
+
+**Adding a custom catalog:** create `ux0:data/NeoVitaDB/catalogs.cfg` and add one catalog per line,
+either a bare URL or `Alias|URL` for a short name in the dropdown — see
+[`catalogs.cfg.example`](catalogs.cfg.example) for a ready-to-edit template, and "Using a Custom
+Catalog" below for the full details. Any catalog you add must be a fork of NeoVitaDB-Catalog that
+keeps its data structure unchanged, since the app talks to it exactly the way it talks to the
+official one.
+
+**If you run into problems after updating** — the app not starting, stuck loading, or behaving
+unexpectedly — try deleting `ux0:data/NeoVitaDB` entirely over FTP/VitaShell and letting the app
+recreate it from scratch on next boot. This only clears cached catalog data, icons and your local
+customizations (themes/backgrounds/favorites); it does not touch your installed homebrews.
 
 ### v.2.6
 This is the first release under the new NeoVitaDB name, after the original rinnegatamante.eu

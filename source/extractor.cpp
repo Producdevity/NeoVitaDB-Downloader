@@ -25,6 +25,7 @@
 #include <vitaGL.h>
 #include <stdio.h>
 #include <malloc.h>
+#include "catalog.h"
 #include "dialogs.h"
 #include "extractor.h"
 #include "fios.h"
@@ -177,8 +178,11 @@ bool extract_zip_file(char *file, char *dir, bool indexing, bool cancelable) {
 	}
 	unzGoToFirstFile(zipfile);
 	FILE *f2;
-	if (indexing)
-		f2 = fopen("ux0:data/NeoVitaDB/icons.db", "w");
+	if (indexing) {
+		char icons_db_path[288];
+		sprintf(icons_db_path, "%sicons.db", catalog_dir);
+		f2 = fopen(icons_db_path, "w");
+	}
 	for (int zip_idx = 0; zip_idx < num_files; ++zip_idx) {
 		unzGetCurrentFileInfo(zipfile, &file_info, fname, 512, NULL, 0, NULL, 0);
 		if (indexing) {
@@ -201,6 +205,12 @@ bool extract_zip_file(char *file, char *dir, bool indexing, bool cancelable) {
 					sceIoWrite(f, read_buffer, rbytes);
 					curr_extracted_bytes += rbytes;
 					curr_file_bytes += rbytes;
+				} else {
+
+					sceIoClose(f);
+					unzCloseCurrentFile(zipfile);
+					unzClose(zipfile);
+					return false;
 				}
 				draw_extractor_dialog(zip_idx + 1, curr_file_bytes, curr_extracted_bytes, file_info.uncompressed_size, total_extracted_bytes, fname, num_files);
 				if (cancelable) {

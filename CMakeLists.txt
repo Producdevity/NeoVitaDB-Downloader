@@ -23,6 +23,7 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fno-optimize-sibling-calls -fdiagnostics-co
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-optimize-sibling-calls -fpermissive -g -fdiagnostics-color=always -Wno-write-strings -D_GNU_SOURCE -std=c++11")
 
 add_executable(VitaDB
+	source/catalog.cpp
 	source/database.cpp
 	source/dialogs.cpp
 	source/extractor.cpp
@@ -172,4 +173,5 @@ vita_create_vpk(VitaDB.vpk ${VITA_TITLEID} eboot.bin
 		${CMAKE_SOURCE_DIR}/trophy.png trophy.png
 		${CMAKE_SOURCE_DIR}/star.png star.png
 		${CMAKE_SOURCE_DIR}/crank.png crank.png
+		${CMAKE_SOURCE_DIR}/livearea/icon0.png icon0.png
 )

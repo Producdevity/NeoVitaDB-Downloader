@@ -248,13 +248,19 @@ int appListThread(unsigned int args, void *arg) {
 	curl_handle = curl_easy_init();
 	downloader_pass = 1;
 	downloaded_bytes = 0;
+
+	response_code = 0;
 	fh = -1;
 	time_t timestamp = 0;
 
+	char apps_json_path[288], apps_stamp_path[288];
+	sprintf(apps_json_path, "%sapps.json", catalog_dir);
+	sprintf(apps_stamp_path, "%sapps.stamp", catalog_dir);
+
 	SceIoStat stat;
-	if (sceIoGetstat("ux0:data/NeoVitaDB/apps.json", &stat) >= 0) {
+	if (sceIoGetstat(apps_json_path, &stat) >= 0) {
 		total_bytes = stat.st_size;
-		SceUID fh2 = sceIoOpen("ux0:data/NeoVitaDB/apps.stamp", SCE_O_RDONLY, 0777);
+		SceUID fh2 = sceIoOpen(apps_stamp_path, SCE_O_RDONLY, 0777);
 		if (fh2 > 0) {
 			sceIoRead(fh2, &timestamp, sizeof(time_t));
 			sceIoClose(fh2);
@@ -272,10 +278,10 @@ int appListThread(unsigned int args, void *arg) {
 
 
 	if (downloaded_bytes > 0 && (response_code == 200 || response_code == 206)) {
-		fh = sceIoOpen("ux0:data/NeoVitaDB/apps.json", SCE_O_WRONLY | SCE_O_TRUNC | SCE_O_CREAT, 0777);
+		fh = sceIoOpen(apps_json_path, SCE_O_WRONLY | SCE_O_TRUNC | SCE_O_CREAT, 0777);
 		sceIoWrite(fh, generic_mem_buffer, downloaded_bytes);
 		sceIoClose(fh);
-		fh = sceIoOpen("ux0:data/NeoVitaDB/apps.stamp", SCE_O_WRONLY | SCE_O_TRUNC | SCE_O_CREAT, 0777);
+		fh = sceIoOpen(apps_stamp_path, SCE_O_WRONLY | SCE_O_TRUNC | SCE_O_CREAT, 0777);
 		sceIoWrite(fh, &download_tstamp, sizeof(time_t));
 		sceIoClose(fh);
 	}
@@ -290,13 +296,19 @@ int appPspListThread(unsigned int args, void *arg) {
 	curl_handle = curl_easy_init();
 	downloader_pass = 1;
 	downloaded_bytes = 0;
+
+	response_code = 0;
 	fh = -1;
 	time_t timestamp = 0;
 
+	char psp_apps_json_path[288], psp_apps_stamp_path[288];
+	sprintf(psp_apps_json_path, "%spsp_apps.json", catalog_dir);
+	sprintf(psp_apps_stamp_path, "%spsp_apps.stamp", catalog_dir);
+
 	SceIoStat stat;
-	if (sceIoGetstat("ux0:data/NeoVitaDB/psp_apps.json", &stat) >= 0) {
+	if (sceIoGetstat(psp_apps_json_path, &stat) >= 0) {
 		total_bytes = stat.st_size;
-		SceUID fh2 = sceIoOpen("ux0:data/NeoVitaDB/psp_apps.stamp", SCE_O_RDONLY, 0777);
+		SceUID fh2 = sceIoOpen(psp_apps_stamp_path, SCE_O_RDONLY, 0777);
 		if (fh2 > 0) {
 			sceIoRead(fh2, &timestamp, sizeof(time_t));
 			sceIoClose(fh2);
@@ -314,10 +326,10 @@ int appPspListThread(unsigned int args, void *arg) {
 
 
 	if (downloaded_bytes > 0 && (response_code == 200 || response_code == 206)) {
-		fh = sceIoOpen("ux0:data/NeoVitaDB/psp_apps.json", SCE_O_WRONLY | SCE_O_TRUNC | SCE_O_CREAT, 0777);
+		fh = sceIoOpen(psp_apps_json_path, SCE_O_WRONLY | SCE_O_TRUNC | SCE_O_CREAT, 0777);
 		sceIoWrite(fh, generic_mem_buffer, downloaded_bytes);
 		sceIoClose(fh);
-		fh = sceIoOpen("ux0:data/NeoVitaDB/psp_apps.stamp", SCE_O_WRONLY | SCE_O_TRUNC | SCE_O_CREAT, 0777);
+		fh = sceIoOpen(psp_apps_stamp_path, SCE_O_WRONLY | SCE_O_TRUNC | SCE_O_CREAT, 0777);
 		sceIoWrite(fh, &download_tstamp, sizeof(time_t));
 		sceIoClose(fh);
 	}
