@@ -57,6 +57,9 @@ const char *format_size_str(uint64_t len) {
 
 void copy_file(const char *src, const char *dst) {
 	SceUID fs = sceIoOpen(src, SCE_O_RDONLY, 0777);
+
+	if (fs < 0)
+		return;
 	SceUID fd = sceIoOpen(dst, SCE_O_WRONLY | SCE_O_TRUNC | SCE_O_CREAT, 0777);
 	size_t fsize;
 	while (fsize = sceIoRead(fs, generic_mem_buffer, MEM_BUFFER_SIZE)) {

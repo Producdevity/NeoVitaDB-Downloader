@@ -477,7 +477,8 @@ void set_gui_theme() {
 	if (f) {
 		float values[4];
 		char buffer[64];
-		while (EOF != fscanf(f, "%[^=]=%f,%f,%f,%f\n", buffer, &values[0], &values[1], &values[2], &values[3])) {
+
+		while (EOF != fscanf(f, "%63[^=]=%f,%f,%f,%f\n", buffer, &values[0], &values[1], &values[2], &values[3])) {
 			READ_FIRST_VAL(FrameBg)
 			READ_NEXT_VAL(FrameBgHovered)
 			READ_NEXT_VAL(TitleBgActive)
@@ -594,10 +595,12 @@ void install_theme(ThemeSelection *g) {
 	}
 	load_background();
 	
-	// Set new color scheme
+
 	sprintf(fname, "ux0:data/NeoVitaDB/themes/%s/theme.ini", g->name);
-	copy_file(fname, "ux0:data/NeoVitaDB/theme.ini");
-	set_gui_theme();
+	if (sceIoGetstat(fname, &st) >= 0) {
+		copy_file(fname, "ux0:data/NeoVitaDB/theme.ini");
+		set_gui_theme();
+	}
 	
 	// Set new font
 	if (g->has_font[0] == '1') {
@@ -679,11 +682,13 @@ void install_theme_from_shuffle(bool boot) {
 	if (!boot)
 		load_background();
 
-	// Set new color scheme
+
 	sprintf(fname, "ux0:data/NeoVitaDB/themes/%s/theme.ini", name);
-	copy_file(fname, "ux0:data/NeoVitaDB/theme.ini");
-	if (!boot)
-		set_gui_theme();
+	if (sceIoGetstat(fname, &st) >= 0) {
+		copy_file(fname, "ux0:data/NeoVitaDB/theme.ini");
+		if (!boot)
+			set_gui_theme();
+	}
 
 	// Set new font
 	sprintf(fname, "ux0:data/NeoVitaDB/themes/%s/font.ttf", name);
@@ -2065,12 +2070,36 @@ extract_libshacccg:
 				setup_anti_burn_in();
 				ThemeSelection *node = (ThemeSelection *)to_download;
 				sprintf(download_link, "https://github.com/CatoTheYounger97/vitaDB_themes/blob/main/themes/%s/theme.zip?raw=true", node->name);
-				download_file(download_link, "Downloading theme", false, -1, -1, anti_burn_in_texture);
+				char theme_url_debug[512];
+				sprintf(theme_url_debug, "%s", download_link);
+				bool dl_ok = download_file(download_link, "Downloading theme", false, -1, -1, anti_burn_in_texture);
+				SceIoStat dl_st;
+				bool dl_exists = sceIoGetstat(TEMP_DOWNLOAD_NAME, &dl_st) >= 0;
 				sprintf(download_link, "ux0:data/NeoVitaDB/themes/%s/", node->name);
 				sceIoMkdir(download_link, 0777);
-				extract_zip_file(TEMP_DOWNLOAD_NAME, download_link, false);
+				bool extract_ok = extract_zip_file(TEMP_DOWNLOAD_NAME, download_link, false);
+
+				{
+					SceUID dfh = sceIoOpen("ux0:data/NeoVitaDB/theme_dl_debug.txt", SCE_O_WRONLY | SCE_O_TRUNC | SCE_O_CREAT, 0777);
+					if (dfh >= 0) {
+						char diag[700];
+						int diag_len = sprintf(diag, "name=%s\nurl=%s\ndl_ok=%d\ndl_exists=%d\ndl_size=%llu\nextract_ok=%d\n",
+							node->name, theme_url_debug, dl_ok, dl_exists, dl_exists ? (unsigned long long)dl_st.st_size : 0ULL, extract_ok);
+						sceIoWrite(dfh, diag, diag_len);
+						sceIoClose(dfh);
+					}
+				}
 				sceIoRemove(TEMP_DOWNLOAD_NAME);
-				node->state = APP_UPDATED;
+				if (!dl_ok || !extract_ok) {
+					init_msg_dialog("Failed to download this theme. Please try again later.");
+					while (sceMsgDialogGetStatus() != SCE_COMMON_DIALOG_STATUS_FINISHED) {
+						draw_simple_texture(anti_burn_in_texture);
+						vglSwapBuffers(GL_TRUE);
+					}
+					sceMsgDialogTerm();
+				} else {
+					node->state = APP_UPDATED;
+				}
 				to_download = nullptr;
 			} else {
 				if (to_download->requirements && ((!strstr(to_download->requirements, "libshacccg.suprx")) || strlen(to_download->requirements) != strlen("- libshacccg.suprx"))) {
