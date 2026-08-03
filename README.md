@@ -113,6 +113,9 @@ It's also possible to add more blacklisted homebrews (for example, if you use a 
 - Fixed the PSP apps list failing to download (and silently retrying every single frame for as
   long as PSP mode stayed open) due to a leftover HTTP status code carried over from an unrelated,
   earlier download.
+- Fixed the in-app self-update marking itself as updated (and relaunching) without actually
+  installing the new version, since it always assumed the downloaded release was in the old
+  VitaDB backend's PSARC format instead of the plain `.vpk` this project's own releases use.
 
 **Adding a custom catalog:** create `ux0:data/NeoVitaDB/catalogs.cfg` and add one catalog per line,
 either a bare URL or `Alias|URL` for a short name in the dropdown — see

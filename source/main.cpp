@@ -2287,8 +2287,27 @@ extract_libshacccg:
 					continue;
 				}
 				if (!strcmp(to_download->id, SELF_CATALOG_ID)) { // Updating NeoVitaDB Downloader
-					extract_psarc_file(TEMP_DOWNLOAD_NAME, "ux0:app/NEOVITADB", false, anti_burn_in_texture); // We don't want VitaDB Downloader update to be abortable to prevent corruption
+
+					uint32_t header;
+					SceUID hf = sceIoOpen(TEMP_DOWNLOAD_NAME, SCE_O_RDONLY, 0777);
+					sceIoRead(hf, &header, 4);
+					sceIoClose(hf);
+					bool extract_finished;
+					if (header == 0x52415350) // PSARC
+						extract_finished = extract_psarc_file(TEMP_DOWNLOAD_NAME, "ux0:app/NEOVITADB", false, anti_burn_in_texture); // We don't want VitaDB Downloader update to be abortable to prevent corruption
+					else // ZIP
+						extract_finished = extract_zip_file(TEMP_DOWNLOAD_NAME, "ux0:app/NEOVITADB/", false, false);
 					sceIoRemove(TEMP_DOWNLOAD_NAME);
+					if (!extract_finished) {
+						init_msg_dialog("The update could not be installed. Please try again later.");
+						while (sceMsgDialogGetStatus() != SCE_COMMON_DIALOG_STATUS_FINISHED) {
+							draw_simple_texture(anti_burn_in_texture);
+							vglSwapBuffers(GL_TRUE);
+						}
+						sceMsgDialogTerm();
+						to_download = nullptr;
+						continue;
+					}
 					SceUID f = sceIoOpen("ux0:app/NEOVITADB/hash.vdb", SCE_O_WRONLY | SCE_O_CREAT | SCE_O_TRUNC, 0777);
 					sceIoWrite(f, to_download->hash, 32);
 					sceIoClose(f);
