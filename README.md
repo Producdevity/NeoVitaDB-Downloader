@@ -74,6 +74,13 @@ It's also possible to add more blacklisted homebrews (for example, if you use a 
 
 ## Changelog
 
+### v.2.8.1
+- Fixed the in-app self-update looping forever on a fresh update: a stray extra slash in the
+  extraction path meant a `.vpk`-packaged update (as opposed to the old PSARC format) got written
+  somewhere other than where the app actually loads from, so it kept detecting itself as outdated
+  and re-downloading the same update every time it relaunched. If you're stuck in this loop on
+  v.2.8.0, install this version's `.vpk` manually once to break out of it.
+
 ### v.2.8.0
 - Fixed themes potentially corrupting `theme.ini` into a multi-gigabyte file and crashing the app
   on every subsequent launch, if a theme download failed partway (e.g. hitting GitHub's rate
@@ -147,10 +154,16 @@ unexpectedly — try deleting `ux0:data/NeoVitaDB` entirely over FTP/VitaShell a
 recreate it from scratch on next boot. This only clears cached catalog data, icons and your local
 customizations (themes/backgrounds/favorites); it does not touch your installed homebrews.
 
-> ⚠️ **If you're on v.2.7, update to v.2.8.0.** A theme download that fails (e.g. hitting GitHub's
-> rate limit) could corrupt `theme.ini` into a multi-gigabyte file, filling your storage and making
-> the app crash on every subsequent launch. This is fixed in v.2.8.0. If you're already affected,
-> deleting `ux0:data/NeoVitaDB/theme.ini` over FTP/VitaShell resolves it.
+> ⚠️ **If you're on v.2.7, you must install v.2.8.1 manually (via VitaShell) — the in-app
+> self-update cannot complete on v.2.7**, since it always assumes the old PSARC format instead of
+> checking what was actually downloaded (this project's releases are plain `.vpk`), so it silently
+> fails and keeps re-offering the same update on every launch. Once on v.2.8.1 (or later),
+> self-update works normally for all future releases. v.2.8.1 also fixes v.2.8.0's own self-update
+> bug (a stray extra slash made an update install somewhere the app doesn't actually load from,
+> looping the same way) and a theme download that failed partway (e.g. hitting GitHub's rate
+> limit) corrupting `theme.ini` into a multi-gigabyte file that crashed the app on every launch —
+> if you're already affected by that, deleting `ux0:data/NeoVitaDB/theme.ini` over FTP/VitaShell
+> resolves it.
 
 ### v.2.6
 This is the first release under the new NeoVitaDB name, after the original rinnegatamante.eu

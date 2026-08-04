@@ -2330,7 +2330,8 @@ extract_libshacccg:
 					if (header == 0x52415350) // PSARC
 						extract_finished = extract_psarc_file(TEMP_DOWNLOAD_NAME, "ux0:app/NEOVITADB", false, anti_burn_in_texture); // We don't want VitaDB Downloader update to be abortable to prevent corruption
 					else // ZIP
-						extract_finished = extract_zip_file(TEMP_DOWNLOAD_NAME, "ux0:app/NEOVITADB/", false, false);
+
+						extract_finished = extract_zip_file(TEMP_DOWNLOAD_NAME, "ux0:app/NEOVITADB", false, false);
 					sceIoRemove(TEMP_DOWNLOAD_NAME);
 					if (!extract_finished) {
 						init_msg_dialog("The update could not be installed. Please try again later.");
