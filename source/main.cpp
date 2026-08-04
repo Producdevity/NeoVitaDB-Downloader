@@ -809,8 +809,13 @@ extract_libshacccg:
 			sceIoRemove("ux0:/data/Runtime2.01.pkg");
 			early_download_file(CATALOG_SHARKFOOD_VPK, "Downloading SharkF00D");
 			sceIoMkdir(TEMP_INSTALL_DIR, 0777);
-			early_extract_zip_file(TEMP_DOWNLOAD_NAME, TEMP_INSTALL_PATH);
+			bool sharkfood_ok = early_extract_zip_file(TEMP_DOWNLOAD_NAME, TEMP_INSTALL_PATH);
 			sceIoRemove(TEMP_DOWNLOAD_NAME);
+			if (!sharkfood_ok) {
+
+				recursive_rmdir(TEMP_INSTALL_DIR);
+				early_fatal_error("Failed to download SharkF00D. Please check your internet connection and relaunch the app to try again.");
+			}
 			makeHeadBin(TEMP_INSTALL_DIR);
 			init_warning("Installing SharkF00D");
 			scePromoterUtilInit();
@@ -2364,6 +2369,21 @@ extract_libshacccg:
 							to_download = nullptr;
 							continue;
 						}
+
+						if (sceIoGetstat(TEMP_INSTALL_DIR "/eboot.bin", &st) < 0) {
+							char nested_vpk[512];
+							if (find_vpk_in_dir(TEMP_INSTALL_DIR, nested_vpk)) {
+								extract_finished = extract_zip_file(nested_vpk, TEMP_INSTALL_PATH, false, true);
+								sceIoRemove(nested_vpk);
+								if (!extract_finished) {
+									if (downloading_data_files)
+										recursive_rmdir(TEMP_DATA_DIR);
+									recursive_rmdir(TEMP_INSTALL_DIR);
+									to_download = nullptr;
+									continue;
+								}
+							}
+						}
 						if (strlen(to_download->aux_hash) > 0) {
 							f = sceIoOpen(AUX_HASH_FILE, SCE_O_WRONLY | SCE_O_TRUNC | SCE_O_CREAT, 0777);
 							sceIoWrite(f, to_download->aux_hash, 32);
@@ -2613,6 +2633,8 @@ skip_install:
 			to_download = nullptr;
 			to_uninstall = nullptr;
 
+			old_sort_idx = -1;
+
 			char icons_db_path[288];
 			sprintf(icons_db_path, "%sicons.db", catalog_dir);
 			if (sceIoGetstat(icons_db_path, &st) < 0) {
@@ -2654,6 +2676,7 @@ skip_install:
 				old_hovered = nullptr;
 				to_download = nullptr;
 				to_uninstall = nullptr;
+				old_sort_idx = -1; // see the identical comment on the successful-switch path above
 				populate_daemon_blacklist();
 				populate_favorites();
 				sprintf(apps_json_path, "%sapps.json", catalog_dir);

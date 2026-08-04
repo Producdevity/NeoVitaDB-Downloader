@@ -70,8 +70,9 @@ static SceUID clash_thd;
 extern char boot_params[1024];
 extern AppSelection *to_download;
 
-const char *sort_modes_apps_str[8] = {
-	"Most Recent",
+const char *sort_modes_apps_str[9] = {
+	"Recently Added",
+	"Recently Updated",
 	"Oldest",
 	"Most Downloaded",
 	"Least Downloaded",
@@ -391,6 +392,7 @@ bool populate_apps_database(const char *file, bool is_psp) {
 			ptr = get_value_from_json(node->folder, ptr, "folder", nullptr);
 			ptr = get_value_from_json(smalldata, ptr, "direct", nullptr);
 			node->direct = atoi(smalldata);
+			ptr = get_value_from_json(node->added, ptr, "added", nullptr);
 			if (is_psp) {
 
 				if (node->folder[0]) {
@@ -502,6 +504,7 @@ bool populate_apps_database_vitadb_legacy(const char *file, bool is_psp) {
 			node->prev_clash = nullptr;
 			node->trusted = false;
 			node->direct = false;
+			node->added[0] = 0; // no such concept on this source - see SORT_APPS_RECENTLY_ADDED
 			ptr = get_value_from_json(node->icon, ptr, "icon", nullptr);
 			char icon_path[300];
 			sprintf(icon_path, "%sicons/%c%c/%s", catalog_dir, node->icon[0], node->icon[1], node->icon);
@@ -836,9 +839,17 @@ void sort_apps_list(AppSelection **start, int sort_idx) {
 			bool last_swapped = false;
 			AppSelection *old_next = ptr1->next;
 			switch (sort_idx) {
+			case SORT_APPS_RECENTLY_ADDED:
+
+				if (strcasecmp(ptr1->added, ptr1->next->added) < 0) {
+					swap_apps(lptr, ptr1, ptr1->next);
+					swapped = true;
+					last_swapped = true;
+				}
+				break;
 			case SORT_APPS_NEWEST:
 				if (strcasecmp(ptr1->date, ptr1->next->date) < 0) {
-					swap_apps(lptr, ptr1, ptr1->next); 
+					swap_apps(lptr, ptr1, ptr1->next);
 					swapped = true;
 					last_swapped = true;
 				}

@@ -139,6 +139,26 @@ void recursive_mkdir(char *dir) {
 	}
 }
 
+
+bool find_vpk_in_dir(const char *dir, char *out_path) {
+	SceUID d = sceIoDopen(dir);
+	if (d < 0)
+		return false;
+	SceIoDirent entry;
+	bool found = false;
+	while (!found && sceIoDread(d, &entry) > 0) {
+		if (SCE_S_ISDIR(entry.d_stat.st_mode))
+			continue;
+		size_t len = strlen(entry.d_name);
+		if (len > 4 && !strcasecmp(&entry.d_name[len - 4], ".vpk")) {
+			sprintf(out_path, "%s/%s", dir, entry.d_name);
+			found = true;
+		}
+	}
+	sceIoDclose(d);
+	return found;
+}
+
 void populate_pspemu_path() {
 	SceUID f = sceIoOpen("ux0:app/PSPEMUCFW/adrenaline.bin", SCE_O_RDONLY, 0777);
 	if (f >= 0) {

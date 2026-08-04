@@ -14,7 +14,7 @@ NeoVitaDB Downloader is a PSVita/PSTV homebrew client, a fork of Rinnegatamante'
 - Searching by author/homebrew name.
 - Filtering apps by category.
 - Viewing of all available screenshots and video trailer for apps.
-- Sorting apps by different criteria (Most Recent, Oldest, Most Downloaded, Least Downloaded, Alphabetical, etc...)
+- Sorting apps by different criteria (Recently Added, Recently Updated, Oldest, Most Downloaded, Least Downloaded, Alphabetical, etc...)
 - Showing of several metadata for apps.
 - Download and installation of vpk+data files or vpk only at user discretion. (No more need to redownload data files everytime you want to update an homebrew for which data files are unchanged)
 - GUI based on dear ImGui, providing a very robust user experience without sacrificing on fancyness and with high customizability.
@@ -81,6 +81,16 @@ It's also possible to add more blacklisted homebrews (for example, if you use a 
 - Fixed a stack buffer overflow when parsing a malformed or corrupted `theme.ini`.
 - Self-update version checks now compare major.minor.**patch** instead of just major.minor, so a
   future patch release (e.g. v.2.8.1) is correctly detected as newer and can be installed in-app.
+- Fixed the first-boot SharkF00D bootstrap (needed to set up `libshacccg.suprx`) freezing forever
+  on an interrupted or corrupted download, which could look like the app crashing. A failed
+  download now shows a clear error asking you to check your connection and relaunch, instead of
+  hanging or silently continuing with a broken install.
+- Fixed the apps list not actually being sorted after switching catalogs — it stayed in raw parse
+  order until you manually reselected a sorting mode, even though the active sort was still shown
+  as selected.
+- Added a new default sort mode, "Recently Added", showing what's newest in the catalog itself
+  rather than the underlying homebrew's own release date. The old "Most Recent" (which sorts by
+  that release date) is still there, renamed to "Recently Updated" to make the difference clear.
 
 ### v.2.7
 - Added an in-app catalog switcher: a dropdown next to the Search bar lets you change which

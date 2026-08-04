@@ -35,6 +35,8 @@ enum {
 };
 
 enum {
+
+	SORT_APPS_RECENTLY_ADDED,
 	SORT_APPS_NEWEST,
 	SORT_APPS_OLDEST,
 	SORT_APPS_MOST_DOWNLOADED,
@@ -45,7 +47,7 @@ enum {
 	SORT_APPS_LARGEST
 };
 
-extern const char *sort_modes_apps_str[8];
+extern const char *sort_modes_apps_str[9];
 
 enum {
 	SORT_THEMES_A_Z,
@@ -90,7 +92,8 @@ struct AppSelection {
 	char *requirements;
 	char data_link[128];
 	char url[256];
-	char folder[64]; // PSP only: the ux0:pspemu/PSP/GAME/<folder> the release's own zip structure expects, e.g. "APOLLO"
+	char folder[64];
+	char added[12];
 	int state;
 	bool trophies;
 	bool ai;

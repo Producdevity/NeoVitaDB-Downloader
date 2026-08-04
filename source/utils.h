@@ -48,6 +48,7 @@ void copy_file(const char *src, const char *dst);
 void recursive_rmdir(char *path);
 void recursive_mkdir(char *dir);
 void populate_pspemu_path();
+bool find_vpk_in_dir(const char *dir, char *out_path);
 
 uint64_t get_free_storage();
 uint64_t get_total_storage();

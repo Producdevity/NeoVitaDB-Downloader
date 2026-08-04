@@ -42,7 +42,7 @@ void init_read_buffer() {
 	read_buffer = (char *)memalign(64, READ_BUFFER_SIZE);
 }
 
-void early_extract_zip_file(char *file, char *dir) {
+bool early_extract_zip_file(char *file, char *dir) {
 	init_progressbar_dialog("Extracting ShaRKF00D"); // Hardcoded for now since it's the sole instance of this function
 	unz_global_info global_info;
 	unz_file_info file_info;
@@ -53,6 +53,18 @@ void early_extract_zip_file(char *file, char *dir) {
 	uint64_t curr_extracted_bytes = 0;
 	uint64_t curr_file_bytes = 0;
 	int num_files = global_info.number_entry;
+
+	if (num_files <= 0) {
+		unzClose(zipfile);
+		sceMsgDialogClose();
+		int status = sceMsgDialogGetStatus();
+		do {
+			vglSwapBuffers(GL_TRUE);
+			status = sceMsgDialogGetStatus();
+		} while (status != SCE_COMMON_DIALOG_STATUS_FINISHED);
+		sceMsgDialogTerm();
+		return false;
+	}
 	for (int zip_idx = 0; zip_idx < num_files; ++zip_idx) {
 		unzGetCurrentFileInfo(zipfile, &file_info, fname, 512, NULL, 0, NULL, 0);
 		total_extracted_bytes += file_info.uncompressed_size;
@@ -61,6 +73,7 @@ void early_extract_zip_file(char *file, char *dir) {
 	}
 	unzGoToFirstFile(zipfile);
 	uint32_t prog_delta = 100 / num_files;
+	bool ok = true;
 	for (int zip_idx = 0; zip_idx < num_files; ++zip_idx) {
 		unzGetCurrentFileInfo(zipfile, &file_info, fname, 512, NULL, 0, NULL, 0);
 		sprintf(ext_fname, "%s/%s", dir, fname);
@@ -76,6 +89,10 @@ void early_extract_zip_file(char *file, char *dir) {
 					sceIoWrite(f, read_buffer, rbytes);
 					curr_extracted_bytes += rbytes;
 					curr_file_bytes += rbytes;
+				} else {
+
+					ok = false;
+					break;
 				}
 				sceKernelPowerTick(SCE_KERNEL_POWER_TICK_DEFAULT);
 				vglSwapBuffers(GL_TRUE);
@@ -95,6 +112,7 @@ void early_extract_zip_file(char *file, char *dir) {
 		status = sceMsgDialogGetStatus();
 	} while (status != SCE_COMMON_DIALOG_STATUS_FINISHED);
 	sceMsgDialogTerm();
+	return ok;
 }
 
 static bool extract_psarc_dir(int dir, char *out_dir, bool cancelable, GLuint bg_tex) {
