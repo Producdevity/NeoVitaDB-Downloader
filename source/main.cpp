@@ -172,11 +172,16 @@ void load_background() {
 	int w, h;
 	
 	SceIoStat st;
-	if (sceIoGetstat("ux0:data/NeoVitaDB/bg.mp4", &st) >= 0) {
-		video_open("ux0:data/NeoVitaDB/bg.mp4");
-		has_animated_bg = true;
-	} else {
-		has_animated_bg = false;
+	has_animated_bg = false;
+
+	if (bg_image) {
+		glDeleteTextures(1, &bg_image);
+		bg_image = 0;
+	}
+	if (sceIoGetstat("ux0:data/NeoVitaDB/bg.mp4", &st) >= 0)
+		has_animated_bg = video_open("ux0:data/NeoVitaDB/bg.mp4");
+	if (!has_animated_bg) {
+
 		uint8_t *bg_data = stbi_load("ux0:data/NeoVitaDB/bg.png", &w, &h, NULL, 4);
 		if (bg_data) {
 			glGenTextures(1, &bg_image);
@@ -1108,14 +1113,14 @@ extract_libshacccg:
 				sort_apps_list(mode_idx == MODE_VITA_HBS ? &apps : &psp_apps, sort_idx);
 		}
 		
+
+		glClear(GL_COLOR_BUFFER_BIT);
 		if (bg_image || has_animated_bg) {
-			if (trailer_feature == FEATURE_ON && has_animated_bg) {
-				glClear(GL_COLOR_BUFFER_BIT);
-			} else {
+			if (trailer_feature != FEATURE_ON || !has_animated_bg) {
 				draw_background();
 			}
 		}
-		
+
 		ImGui_ImplVitaGL_NewFrame();
 		
 		if (ImGui::BeginMainMenuBar()) {
@@ -2556,8 +2561,8 @@ skip_install:
 			// Start trailer streaming
 			char trailer_url[256];
 			sprintf(trailer_url, CATALOG_VIDEO_FMT, hovered->trailer);
-			video_open(trailer_url);
-			trailer_feature = FEATURE_ON;
+
+			trailer_feature = video_open(trailer_url) ? FEATURE_ON : FEATURE_OFF;
 		}
 		
 		// Queued screenshots download

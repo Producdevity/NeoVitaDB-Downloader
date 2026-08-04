@@ -230,7 +230,7 @@ void video_close() {
 	}
 }
 
-void video_open(const char *path) {
+bool video_open(const char *path) {
 	finished = false;
 	video_len = 0;
 	first_frame = true;
@@ -271,19 +271,31 @@ void video_open(const char *path) {
 		playerInit.eventReplacement.eventCallback = video_events_handle;
 		
 		movie_player = sceAvPlayerInit(&playerInit);
-		sceAvPlayerAddSource(movie_player, "remote_stream.mp4"); // sceAvPlayer needs the source to end with ".mp4" for some reasons...
-		
+		int add_res = sceAvPlayerAddSource(movie_player, "remote_stream.mp4"); // sceAvPlayer needs the source to end with ".mp4" for some reasons...
+		if (add_res < 0) {
+			sceAvPlayerClose(movie_player);
+			glDeleteTextures(VIDEO_BUFFERS_NUM, movie_frame);
+			return false;
+		}
+
 		video_audio_init();
 		audio_thid = sceKernelCreateThread("video_audio_thread", video_audio_thread, 0x10000100 - 10, 0x4000, 0, 0, NULL);
 		sceKernelStartThread(audio_thid, 0, NULL);
 	} else {
 		playerInit.autoStart = GL_TRUE;
 		movie_player = sceAvPlayerInit(&playerInit);
-		sceAvPlayerAddSource(movie_player, path);
+
+		int add_res = sceAvPlayerAddSource(movie_player, path);
+		if (add_res < 0) {
+			sceAvPlayerClose(movie_player);
+			glDeleteTextures(VIDEO_BUFFERS_NUM, movie_frame);
+			return false;
+		}
 		sceAvPlayerSetLooping(movie_player, 1);
 	}
-	
+
 	player_state = PLAYER_ACTIVE;
+	return true;
 }
 
 GLuint video_get_frame(int *width, int *height) {
