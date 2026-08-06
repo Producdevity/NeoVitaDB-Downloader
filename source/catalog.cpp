@@ -42,7 +42,6 @@ char CATALOG_TROPHY_ICON_FMT[CATALOG_BASE_SIZE + 24];
 #define CATALOG_CONFIG_FILE "ux0:data/NeoVitaDB/catalog.cfg"
 #define LEGACY_DIR "ux0:data/NeoVitaDB"
 
-
 static void catalog_slug(char *dst, const char *base) {
 	if (!strncmp(base, "https://", 8))
 		base += 8;
@@ -53,7 +52,6 @@ static void catalog_slug(char *dst, const char *base) {
 		dst[i] = (base[i] == '/' || base[i] == ':') ? '_' : base[i];
 	dst[i] = 0;
 }
-
 
 static void load_custom_catalogs() {
 	custom_catalogs.clear();
@@ -100,7 +98,6 @@ static void load_custom_catalogs() {
 	free(buffer);
 }
 
-
 static void migrate_legacy_layout() {
 	static const char *legacy_files[] = {
 		"apps.json", "apps.stamp", "psp_apps.json", "psp_apps.stamp",
@@ -118,7 +115,6 @@ static void migrate_legacy_layout() {
 	sprintf(src, LEGACY_DIR "/trophies");
 	sprintf(dst, "%strophies", catalog_dir);
 	move_path(src, dst);
-
 	sprintf(src, "ux0:data/NeoVitaDB.json");
 	sprintf(dst, "%sNeoVitaDB.json", catalog_dir);
 	move_path(src, dst);
@@ -135,22 +131,18 @@ void init_catalog() {
 		if (len < 0)
 			len = 0;
 		catalog_base[len] = 0;
-
 		char *newline = strchr(catalog_base, '\n');
 		if (newline) {
 			*newline = 0;
 			len = newline - catalog_base;
 		}
-
 		while (len > 0 && (catalog_base[len - 1] == '\r' || catalog_base[len - 1] == ' '))
 			catalog_base[--len] = 0;
 	}
-
 		strcpy(catalog_base, OFFICIAL_CATALOG_BASE);
 
 	using_vitadb_legacy = !strcmp(catalog_base, VITADB_LEGACY_BASE);
 	if (using_vitadb_legacy) {
-
 		sprintf(CATALOG_VITA_LIST, "%s/list_hbs_json.php", catalog_base);
 		sprintf(CATALOG_PSP_LIST, "%s/list_psp_hbs_json.php", catalog_base);
 		CATALOG_ICONS_DB[0] = 0;
@@ -185,7 +177,6 @@ void init_catalog() {
 	bool is_official = !strcmp(catalog_base, OFFICIAL_CATALOG_BASE);
 	if (!already_populated && is_official && sceIoGetstat(LEGACY_DIR "/apps.json", &st) >= 0)
 		migrate_legacy_layout();
-
 
 	char subdir[300];
 	sprintf(subdir, "%sicons", catalog_dir);

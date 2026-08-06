@@ -35,7 +35,6 @@ enum {
 };
 
 enum {
-
 	SORT_APPS_RECENTLY_ADDED,
 	SORT_APPS_NEWEST,
 	SORT_APPS_OLDEST,
@@ -85,6 +84,7 @@ struct AppSelection {
 	char trailer[64];
 	char *desc;
 	char downloads[16];
+	char likes[16];
 	char size[16];
 	char data_size[16];
 	char hash[34];
@@ -134,10 +134,8 @@ extern bool update_detected;
 char *get_changelog(const char *file, char *id);
 
 bool populate_apps_database(const char *file, bool is_psp);
-
 bool populate_apps_database_vitadb_legacy(const char *file, bool is_psp);
 void populate_themes_database(const char *file);
-
 
 void reset_apps_database(bool is_psp);
 

@@ -39,7 +39,6 @@ std::vector<std::string> daemon_blacklist;
 std::vector<std::string> favorites;
 bool favorites_old_format = false;
 
-
 static bool is_favorite_record(const std::string &s, bool is_psp, const char *id) {
 	return s.size() == 5 && s[0] == (is_psp ? 'P' : 'V') && atoi(s.c_str() + 1) == atoi(id);
 }
@@ -225,7 +224,6 @@ bool populate_apps_database(const char *file, bool is_psp) {
 	sprintf(icons_db_path, "%sicons.db", catalog_dir);
 	SceUID f = sceIoOpen(icons_db_path, SCE_O_RDONLY, 0777);
 	//printf("f is %x\n", f);
-
 	int icons_db_read = sceIoRead(f, generic_mem_buffer, MEM_BUFFER_SIZE);
 	size_t icons_db_size = icons_db_read < 0 ? 0 : (size_t)icons_db_read;
 	//printf("icons_db_size is %x\n", icons_db_size);
@@ -250,12 +248,12 @@ bool populate_apps_database(const char *file, bool is_psp) {
 		sceIoClose(f);
 		buffer[len] = 0;
 		if (!strstr(buffer, "\"name\":")) {
-
 			bool is_empty_catalog = strstr(buffer, "[]") != nullptr;
 			free(buffer);
 			vglFree(icons_db);
 			return is_empty_catalog;
 		}
+		bool has_likes_field = strstr(buffer, "\"likes\":") != nullptr;
 		char *ptr = buffer;
 		char *end, *end2;
 		std::vector<std::string> new_favorites;
@@ -281,7 +279,6 @@ bool populate_apps_database(const char *file, bool is_psp) {
 			ptr = get_value_from_json(node->type, ptr, "type", nullptr);
 			ptr = get_value_from_json(node->id, ptr, "id", nullptr);
 			if (!strcmp(node->id, SELF_CATALOG_ID) && strlen(boot_params) == 0) { // NeoVitaDB Downloader, check if newer than running version
-
 				char *catalog_ver = &version[2]; // skip the "v." tag prefix, e.g. "v.2.6" -> "2.6"
 				char *catalog_dot = strchr(catalog_ver, '.');
 				char *local_dot = strchr(VERSION, '.');
@@ -327,7 +324,6 @@ bool populate_apps_database(const char *file, bool is_psp) {
 				sscanf(node->type, "%d", &type_num);
 				type_num -= 10;
 				sprintf(node->type, "%d", type_num);
-
 			} else {
 				ptr = get_value_from_json(node->aux_hash, ptr, "hash2", nullptr);
 				//printf("aux db hash %s\n", node->aux_hash);
@@ -385,7 +381,6 @@ bool populate_apps_database(const char *file, bool is_psp) {
 			ptr = get_value_from_json(smalldata, ptr, "ai", nullptr);
 			node->ai = atoi(smalldata);
 			ptr = get_value_from_json(node->data_link, ptr, "data", nullptr);
-
 			ptr = get_value_from_json(node->url, ptr, "url", nullptr);
 			ptr = get_value_from_json(smalldata, ptr, "trusted", nullptr);
 			node->trusted = atoi(smalldata);
@@ -393,14 +388,17 @@ bool populate_apps_database(const char *file, bool is_psp) {
 			ptr = get_value_from_json(smalldata, ptr, "direct", nullptr);
 			node->direct = atoi(smalldata);
 			ptr = get_value_from_json(node->added, ptr, "added", nullptr);
+			if (has_likes_field) {
+				ptr = get_value_from_json(node->likes, ptr, "likes", nullptr);
+			} else {
+				strcpy(node->likes, "0");
+			}
 			if (is_psp) {
-
 				if (node->folder[0]) {
 					sprintf(fname, "%spspemu/PSP/GAME/%s/hash.vdb", pspemu_dev, node->folder);
 					sprintf(fname2, "%spspemu/PSP/GAME/%s/EBOOT.PBP", pspemu_dev, node->folder);
 					checksum_match(fname, fname2, node, PSP_EXECUTABLE);
 				} else {
-
 					node->state = APP_UNTRACKED;
 				}
 			}
@@ -446,7 +444,6 @@ bool populate_apps_database(const char *file, bool is_psp) {
 			sceKernelStartThread(clash_thd, 0, NULL);
 		}
 		
-
 		if (!update_detected && missing_icons_num > 0) {
 			FILE *icons_db_f = fopen(icons_db_path, "a");
 			for (int i = 0; i < missing_icons_num; i++) {
@@ -456,7 +453,6 @@ bool populate_apps_database(const char *file, bool is_psp) {
 				sprintf(download_link, "%sicons/%c%c", catalog_dir, missing_icons[i]->icon[0], missing_icons[i]->icon[1]);
 				sceIoMkdir(download_link, 0777);
 				sprintf(download_link, "%sicons/%c%c/%s", catalog_dir, missing_icons[i]->icon[0], missing_icons[i]->icon[1], missing_icons[i]->icon);
-
 				if (sceIoRename(TEMP_DOWNLOAD_NAME, download_link) >= 0) {
 					fprintf(icons_db_f, "%s\n", download_link);
 					fflush(icons_db_f);
@@ -468,7 +464,6 @@ bool populate_apps_database(const char *file, bool is_psp) {
 	vglFree(icons_db);
 	return f >= 0;
 }
-
 
 bool populate_apps_database_vitadb_legacy(const char *file, bool is_psp) {
 	uint32_t missing_icons_num = 0;
@@ -505,6 +500,7 @@ bool populate_apps_database_vitadb_legacy(const char *file, bool is_psp) {
 			node->trusted = false;
 			node->direct = false;
 			node->added[0] = 0; // no such concept on this source - see SORT_APPS_RECENTLY_ADDED
+			strcpy(node->likes, "0");
 			ptr = get_value_from_json(node->icon, ptr, "icon", nullptr);
 			char icon_path[300];
 			sprintf(icon_path, "%sicons/%c%c/%s", catalog_dir, node->icon[0], node->icon[1], node->icon);
@@ -514,7 +510,6 @@ bool populate_apps_database_vitadb_legacy(const char *file, bool is_psp) {
 			ptr = get_value_from_json(version, ptr, "version", nullptr);
 			ptr = get_value_from_json(node->author, ptr, "author", nullptr);
 			ptr = get_value_from_json(node->type, ptr, "type", nullptr);
-
 			ptr = get_value_from_json(node->id, ptr, "id", nullptr);
 			ptr = get_value_from_json(node->date, ptr, "date", nullptr);
 			ptr = get_value_from_json(node->titleid, ptr, "titleid", nullptr);
@@ -541,7 +536,6 @@ bool populate_apps_database_vitadb_legacy(const char *file, bool is_psp) {
 				sscanf(node->type, "%d", &type_num);
 				type_num -= 10;
 				sprintf(node->type, "%d", type_num);
-
 				sprintf(node->folder, "%d", atoi(node->id));
 				sprintf(fname, "%spspemu/PSP/GAME/%s/hash.vdb", pspemu_dev, node->folder);
 				sprintf(fname2, "%spspemu/PSP/GAME/%s/EBOOT.PBP", pspemu_dev, node->folder);
@@ -582,7 +576,6 @@ bool populate_apps_database_vitadb_legacy(const char *file, bool is_psp) {
 						break;
 				}
 			}
-
 			ptr = get_value_from_json(node->requirements, ptr, "requirements", &node->requirements);
 			if (node->requirements)
 				node->requirements = unescape(node->requirements);
@@ -613,7 +606,6 @@ bool populate_apps_database_vitadb_legacy(const char *file, bool is_psp) {
 			clash_thd = sceKernelCreateThread("Clasher Thread", &clashThread, 0x10000100, 0x100000, 0, 0, NULL);
 			sceKernelStartThread(clash_thd, 0, NULL);
 		}
-
 
 		if (!update_detected && missing_icons_num > 0) {
 			for (int i = 0; i < missing_icons_num; i++) {
@@ -771,7 +763,6 @@ void insert_favorites(char *tid, bool is_psp) {
 		sprintf(buffer, ";%s", record);
 		sceIoWrite(fd, buffer, 6);
 	} else {
-
 		sceIoWrite(fd, ".", 1);
 		sceIoWrite(fd, record, 5);
 	}
@@ -822,7 +813,6 @@ void sort_apps_list(AppSelection **start, int sort_idx) {
 	// Ensuring clasher titleids check finished
 	sceKernelWaitThreadEnd(clash_thd, NULL, NULL);
 
-
 	if (start == NULL || *start == NULL)
 		return;
 	
@@ -840,7 +830,6 @@ void sort_apps_list(AppSelection **start, int sort_idx) {
 			AppSelection *old_next = ptr1->next;
 			switch (sort_idx) {
 			case SORT_APPS_RECENTLY_ADDED:
-
 				if (strcasecmp(ptr1->added, ptr1->next->added) < 0) {
 					swap_apps(lptr, ptr1, ptr1->next);
 					swapped = true;

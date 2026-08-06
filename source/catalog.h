@@ -38,7 +38,6 @@
  * still printf-style format strings, just variables instead of macros now.
  */
 
-
 #define OFFICIAL_CATALOG_BASE "https://robin994.github.io/NeoVitaDB-Catalog"
 #define OFFICIAL_CATALOG_NAME "NeoVitaDB (Official)"
 
@@ -59,16 +58,13 @@ extern bool using_vitadb_legacy;
 // Max length of a catalog base URL as read from catalog.cfg.
 #define CATALOG_BASE_SIZE 192
 
-
 extern char catalog_base[CATALOG_BASE_SIZE];
 extern char catalog_dir[256];
-
 
 struct CustomCatalog {
 	std::string alias;
 	std::string url;
 };
-
 
 extern std::vector<CustomCatalog> custom_catalogs;
 
@@ -110,7 +106,6 @@ extern char CATALOG_TROPHY_ICON_FMT[CATALOG_BASE_SIZE + 24];
  * and never change.
  */
 #define SELF_CATALOG_ID "1"
-
 
 void init_catalog();
 

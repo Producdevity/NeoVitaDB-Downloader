@@ -284,7 +284,6 @@ bool video_open(const char *path) {
 	} else {
 		playerInit.autoStart = GL_TRUE;
 		movie_player = sceAvPlayerInit(&playerInit);
-
 		int add_res = sceAvPlayerAddSource(movie_player, path);
 		if (add_res < 0) {
 			sceAvPlayerClose(movie_player);

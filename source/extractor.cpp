@@ -53,7 +53,6 @@ bool early_extract_zip_file(char *file, char *dir) {
 	uint64_t curr_extracted_bytes = 0;
 	uint64_t curr_file_bytes = 0;
 	int num_files = global_info.number_entry;
-
 	if (num_files <= 0) {
 		unzClose(zipfile);
 		sceMsgDialogClose();
@@ -90,7 +89,6 @@ bool early_extract_zip_file(char *file, char *dir) {
 					curr_extracted_bytes += rbytes;
 					curr_file_bytes += rbytes;
 				} else {
-
 					ok = false;
 					break;
 				}
@@ -224,7 +222,6 @@ bool extract_zip_file(char *file, char *dir, bool indexing, bool cancelable) {
 					curr_extracted_bytes += rbytes;
 					curr_file_bytes += rbytes;
 				} else {
-
 					sceIoClose(f);
 					unzCloseCurrentFile(zipfile);
 					unzClose(zipfile);

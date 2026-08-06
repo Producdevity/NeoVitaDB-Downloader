@@ -60,7 +60,6 @@ static size_t write_cb(void *ptr, size_t size, size_t nmemb, void *stream) {
 			return 0;
 		}
 	}
-
 	if (total_bytes > MEM_BUFFER_SIZE || downloaded_bytes + nmemb > MEM_BUFFER_SIZE || fh >= 0) {
 		if (fh < 0)
 			fh = sceIoOpen(TEMP_DOWNLOAD_NAME, SCE_O_WRONLY | SCE_O_TRUNC | SCE_O_CREAT, 0777);
@@ -183,7 +182,6 @@ static void startDownload(const char *url, time_t timestamp = 0) {
 	curl_easy_setopt(curl_handle, CURLOPT_SSL_VERIFYPEER, 0L);
 	curl_easy_setopt(curl_handle, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1_2);
 	curl_easy_setopt(curl_handle, CURLOPT_CONNECTTIMEOUT, 10L);
-
 	curl_easy_setopt(curl_handle, CURLOPT_LOW_SPEED_LIMIT, 1L);
 	curl_easy_setopt(curl_handle, CURLOPT_LOW_SPEED_TIME, 30L);
 	curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, 1L);
@@ -208,7 +206,6 @@ static void startDownload(const char *url, time_t timestamp = 0) {
 	if (res == CURLE_OK) {
 		curl_easy_getinfo(curl_handle, CURLINFO_RESPONSE_CODE, &response_code);
 	}
-
 	curl_slist_free_all(headerchunk);
 }
 
@@ -221,7 +218,6 @@ static void startStream(const char *url) {
 	curl_easy_setopt(curl_handle, CURLOPT_SSL_VERIFYPEER, 0L);
 	curl_easy_setopt(curl_handle, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1_2);
 	curl_easy_setopt(curl_handle, CURLOPT_CONNECTTIMEOUT, 10L);
-
 	curl_easy_setopt(curl_handle, CURLOPT_LOW_SPEED_LIMIT, 1L);
 	curl_easy_setopt(curl_handle, CURLOPT_LOW_SPEED_TIME, 30L);
 	curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, 1L);
@@ -248,7 +244,6 @@ int appListThread(unsigned int args, void *arg) {
 	curl_handle = curl_easy_init();
 	downloader_pass = 1;
 	downloaded_bytes = 0;
-
 	response_code = 0;
 	fh = -1;
 	time_t timestamp = 0;
@@ -269,13 +264,11 @@ int appListThread(unsigned int args, void *arg) {
 		total_bytes = 12 * 1024;
 	}
 
-
 	int attempts = 0;
 	while (downloaded_bytes < total_bytes && response_code != 304 && attempts < 10) {
 		startDownload(CATALOG_VITA_LIST, timestamp);
 		attempts++;
 	}
-
 
 	if (downloaded_bytes > 0 && (response_code == 200 || response_code == 206)) {
 		fh = sceIoOpen(apps_json_path, SCE_O_WRONLY | SCE_O_TRUNC | SCE_O_CREAT, 0777);
@@ -296,7 +289,6 @@ int appPspListThread(unsigned int args, void *arg) {
 	curl_handle = curl_easy_init();
 	downloader_pass = 1;
 	downloaded_bytes = 0;
-
 	response_code = 0;
 	fh = -1;
 	time_t timestamp = 0;
@@ -317,13 +309,11 @@ int appPspListThread(unsigned int args, void *arg) {
 		total_bytes = 12 * 1024;
 	}
 
-
 	int attempts = 0;
 	while (downloaded_bytes < total_bytes && response_code != 304 && attempts < 10) {
 		startDownload(CATALOG_PSP_LIST, timestamp);
 		attempts++;
 	}
-
 
 	if (downloaded_bytes > 0 && (response_code == 200 || response_code == 206)) {
 		fh = sceIoOpen(psp_apps_json_path, SCE_O_WRONLY | SCE_O_TRUNC | SCE_O_CREAT, 0777);
@@ -359,7 +349,6 @@ int downloadMemThread(unsigned int args, void *arg) {
 	downloaded_bytes = 0;
 	total_bytes = 20;
 	startDownload(final_url);
-
 	int attempts = 0;
 	while (downloaded_bytes < total_bytes && attempts < 10) {
 		startDownload(final_url);
@@ -395,7 +384,6 @@ int streamMemThread(unsigned int args, void *arg) {
 	video_decoder_idx = 0;
 	total_bytes = 20;
 	startStream(final_url);
-
 	{
 	int attempts = 0;
 	while (downloaded_bytes < total_bytes && attempts < 10) {
@@ -433,7 +421,6 @@ int downloadThread(unsigned int args, void *arg) {
 	downloaded_bytes = 0;
 	total_bytes = 180;
 	startDownload(final_url);
-
 	int attempts = 0;
 	while (downloaded_bytes < total_bytes && attempts < 10) {
 		if (is_cancelable && is_canceled) {
@@ -468,7 +455,6 @@ bool download_file(char *url, char *text, bool cancelable, int custom_index, int
 		draw_downloader_dialog(pass_idx, downloaded_bytes, total_bytes, text, num_passes, true, bg_tex);
 		res = sceKernelGetThreadInfo(thd, &info);
 	} while (info.status <= SCE_THREAD_DORMANT && res >= 0);
-
 	sceKernelWaitThreadEnd(thd, NULL, NULL);
 	
 	if (is_cancelable) {
@@ -490,7 +476,6 @@ void silent_download(char *url) {
 	do {
 		res = sceKernelGetThreadInfo(thd, &info);
 	} while (info.status <= SCE_THREAD_DORMANT && res >= 0);
-
 	sceKernelWaitThreadEnd(thd, NULL, NULL);
 }
 
@@ -510,7 +495,6 @@ void early_download_file(char *url, char *text) {
 		vglSwapBuffers(GL_TRUE);
 		res = sceKernelGetThreadInfo(thd, &info);
 	} while (info.status <= SCE_THREAD_DORMANT && res >= 0);
-
 	sceKernelWaitThreadEnd(thd, NULL, NULL);
 	sceMsgDialogClose();
 	int status = sceMsgDialogGetStatus();
