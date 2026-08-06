@@ -24,7 +24,7 @@
 
 #include "network.h"
 
-#define VIDEO_BUFFERS_NUM (5)
+#define VIDEO_BUFFERS_NUM (1)
 #define FB_ALIGNMENT 0x40000
 #define ALIGN_MEM(x, align) (((x) + ((align) - 1)) & ~((align) - 1))
 
