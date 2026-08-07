@@ -145,11 +145,17 @@ bool find_vpk_in_dir(const char *dir, char *out_path) {
 	SceIoDirent entry;
 	bool found = false;
 	while (!found && sceIoDread(d, &entry) > 0) {
-		if (SCE_S_ISDIR(entry.d_stat.st_mode))
+		if (!strcmp(entry.d_name, ".") || !strcmp(entry.d_name, ".."))
 			continue;
+		char path[512];
+		sprintf(path, "%s/%s", dir, entry.d_name);
+		if (SCE_S_ISDIR(entry.d_stat.st_mode)) {
+			found = find_vpk_in_dir(path, out_path);
+			continue;
+		}
 		size_t len = strlen(entry.d_name);
 		if (len > 4 && !strcasecmp(&entry.d_name[len - 4], ".vpk")) {
-			sprintf(out_path, "%s/%s", dir, entry.d_name);
+			strcpy(out_path, path);
 			found = true;
 		}
 	}
