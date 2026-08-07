@@ -139,6 +139,7 @@ void init_catalog() {
 		while (len > 0 && (catalog_base[len - 1] == '\r' || catalog_base[len - 1] == ' '))
 			catalog_base[--len] = 0;
 	}
+	if (catalog_base[0] == 0)
 		strcpy(catalog_base, OFFICIAL_CATALOG_BASE);
 
 	using_vitadb_legacy = !strcmp(catalog_base, VITADB_LEGACY_BASE);

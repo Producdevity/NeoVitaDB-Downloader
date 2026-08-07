@@ -73,6 +73,13 @@ By default, a couple of homebrews are blacklisted from this process either cause
 It's also possible to add more blacklisted homebrews (for example, if you use a modded build which would be tagged as outdated by VitaDB Downloader). To do so, create the file `ux0:data/NeoVitaDB/daemon_blacklist.txt` and add inside it a list of Title ID of the homebrews you want to blacklist in this format `ABCD12345;ABCD12346;ABCD12347`.
 
 ## Changelog
+### v.2.8.4
+- Fixed switching to a different catalog (from the dropdown next to the Search bar) always
+  reverting back to the official catalog - the fallback that's meant to apply only when
+  `catalog.cfg` is missing or empty ran unconditionally instead, silently discarding whatever
+  catalog had just been read from the file.
+- Fixed a crash that could happen after switching catalogs twice in a row
+- Fixed a heap buffer overflow while parsing a catalog's app list
 
 ### v.2.8.3
 - Fixed some Vita homebrews (e.g. Freegemas, OceanPop) failing to install with "The installation

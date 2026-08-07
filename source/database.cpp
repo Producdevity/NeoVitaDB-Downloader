@@ -121,7 +121,7 @@ static char *get_value_from_json(char *dst, char *src, char *val, char **new_ptr
 	//printf("ptr is: %X\n", ptr);
 	if ((uintptr_t)ptr == strlen(label))
 		return nullptr;
-	char *end2 = strstr(ptr, (val[0] == 'l' || val[0] == 'c') ? "\"," : "\"");
+	char *end2 = strstr(ptr, (!strcmp(val, "long_description") || !strcmp(val, "changelog")) ? "\"," : "\"");
 	if (dst == nullptr) {
 		if (end2 - ptr > 0) {
 			dst = (char *)malloc(end2 - ptr + 1);
@@ -623,6 +623,8 @@ bool populate_apps_database_vitadb_legacy(const char *file, bool is_psp) {
 }
 
 void reset_apps_database(bool is_psp) {
+	if (!is_psp)
+		sceKernelWaitThreadEnd(clash_thd, NULL, NULL); // clashThread walks this same list on its own thread - must finish before we free it out from under it
 	AppSelection *list = is_psp ? psp_apps : apps;
 	while (list) {
 		AppSelection *next = list->next; // next_clash/prev_clash point at other
