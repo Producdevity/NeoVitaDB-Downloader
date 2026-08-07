@@ -905,7 +905,7 @@ extract_libshacccg:
 	
 	// Initializing vitaGL
 	AppSelection *hovered = nullptr;
-	vglInitWithCustomThreshold(0, 960, 544, 0x1800000, 0x2000000, 0, 0, SCE_GXM_MULTISAMPLE_NONE);
+	vglInitWithCustomThreshold(0, 960, 544, 0x1800000, 0x2000000, 0, 0x10000000, SCE_GXM_MULTISAMPLE_NONE);
 	prepare_simple_drawer();
 	prepare_bubble_drawer();
 
@@ -1572,11 +1572,17 @@ extract_libshacccg:
 				ImGui::SetCursorPosY(22);
 				ImGui::SetCursorPosX(320);
 				ImGui::Text(hovered->downloads);
+				ImGui::SetCursorPosY(38);
+				ImGui::SetCursorPosX(320);
+				ImGui::TextColored(TextLabel, "Likes:");
+				ImGui::SetCursorPosY(54);
+				ImGui::SetCursorPosX(320);
+				ImGui::Text(hovered->likes);
 				if (mode_idx == MODE_VITA_HBS) {
-					ImGui::SetCursorPosY(38);
+					ImGui::SetCursorPosY(70);
 					ImGui::SetCursorPosX(320);
 					ImGui::TextColored(TextLabel, "TitleID:");
-					ImGui::SetCursorPosY(56);
+					ImGui::SetCursorPosY(88);
 					ImGui::SetCursorPosX(320);
 					if (hovered->next_clash || hovered->prev_clash) {
 						ImGui::TextColored(TextOutdated, hovered->titleid);
@@ -1584,15 +1590,15 @@ extract_libshacccg:
 						ImGui::Text(hovered->titleid);
 					}
 					if (hovered->trusted) {
-						ImGui::SetCursorPosY(72);
+						ImGui::SetCursorPosY(104);
 						ImGui::SetCursorPosX(320);
 						ImGui::TextColored(TextUpdated, "Trusted");
 					}
-					ImGui::SetCursorPosY(88);
+					ImGui::SetCursorPosY(120);
 					ImGui::SetCursorPosX(320);
 					ImGui::TextColored(TextLabel, hovered->ai ? "Uses AI" : "");
 					if (hovered->state != APP_UNTRACKED) {
-						ImGui::SetCursorPosY(132);
+						ImGui::SetCursorPosY(164);
 						ImGui::SetCursorPosX(320);
 						if (hovered->blacklisted == APP_WHITELISTED) {
 							ImGui::TextColored(TextUpdated, "Whitelisted");
@@ -1602,16 +1608,10 @@ extract_libshacccg:
 					}
 				}
 				if (hovered->direct) {
-					ImGui::SetCursorPosY(104);
+					ImGui::SetCursorPosY(136);
 					ImGui::SetCursorPosX(320);
 					ImGui::TextColored(TextUpdated, "Direct Download");
 				}
-				ImGui::SetCursorPosY(148);
-				ImGui::SetCursorPosX(320);
-				ImGui::TextColored(TextLabel, "Likes:");
-				ImGui::SetCursorPosY(164);
-				ImGui::SetCursorPosX(320);
-				ImGui::Text(hovered->likes);
 				ImGui::SetCursorPosY(38);
 				ImGui::SetCursorPosX(mode_idx == MODE_VITA_HBS ? 140 : 156);
 				ImGui::TextColored(TextLabel, "Category:");

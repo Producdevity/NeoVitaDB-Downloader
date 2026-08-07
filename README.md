@@ -75,12 +75,15 @@ It's also possible to add more blacklisted homebrews (for example, if you use a 
 ## Changelog
 
 ### v.2.8.2
-- Fixed a permanent black screen when a theme's animated background (or a homebrew trailer) fails
-  to start on real hardware - a known platform limitation (local video playback through the
-  console's stock AVPlayer module is unreliable on real hardware even when it works fine in the
-  Vita3K emulator). The app now waits a few seconds for the first frame and, if it never arrives,
-  falls back to the theme's static background image (or, for trailers, reports the failure)
-  instead of leaving a black screen up indefinitely.
+- Fixed animated theme backgrounds (and homebrew trailers) never actually playing on real hardware
+  while working fine in the Vita3K emulator - a permanent black/static screen instead. The video
+  memory AVPlayer decoded into needs to come from a directly-allocated, GPU-mapped CDRAM block
+  rather than any of vitaGL's own memory pools, which all silently fail to produce a usable buffer
+  for this specific purpose on real hardware despite reporting no error.
+- Fixed a black screen that could still occur even when the fix above didn't apply - if the first
+  video frame never arrives within a few seconds, the app now falls back to the theme's static
+  background image (or, for trailers, reports the failure) instead of leaving a black screen up
+  indefinitely.
 - Fixed a memory leak in video playback cleanup: closing the player didn't always release its
   largest buffer, so repeatedly opening and closing video (e.g. reinstalling a theme, replaying a
   trailer) could exhaust the console's dedicated video memory pool over a session.
