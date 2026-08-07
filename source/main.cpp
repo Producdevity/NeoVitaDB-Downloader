@@ -905,7 +905,7 @@ extract_libshacccg:
 	
 	// Initializing vitaGL
 	AppSelection *hovered = nullptr;
-	vglInitExtended(0, 960, 544, 0x1800000, SCE_GXM_MULTISAMPLE_NONE);
+	vglInitWithCustomThreshold(0, 960, 544, 0x1800000, 0x2000000, 0, 0, SCE_GXM_MULTISAMPLE_NONE);
 	prepare_simple_drawer();
 	prepare_bubble_drawer();
 

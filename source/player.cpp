@@ -27,6 +27,7 @@
 #define VIDEO_BUFFERS_NUM (1)
 #define FB_ALIGNMENT 0x40000
 #define ALIGN_MEM(x, align) (((x) + ((align) - 1)) & ~((align) - 1))
+#define FIRST_FRAME_TIMEOUT_US (3 * 1000 * 1000)
 
 extern "C" {
 #define SCE_AVPLAYER_STATE_READY (2)
@@ -80,17 +81,55 @@ void mem_free(void *p, void *ptr) {
 	free(ptr);
 }
 
+#define GPU_ALLOC_TRACK_MAX 16
+static void *gpu_alloc_tracked[GPU_ALLOC_TRACK_MAX];
+static int gpu_alloc_tracked_count = 0;
+
 void *gpu_alloc(void *p, uint32_t align, uint32_t size) {
 	if (align < FB_ALIGNMENT) {
 		align = FB_ALIGNMENT;
 	}
 	size = ALIGN_MEM(size, align);
-	return vglAlloc(size, VGL_MEM_SLOW);
+
+	void *res = NULL;
+	SceKernelAllocMemBlockOpt opt;
+	memset(&opt, 0, sizeof(opt));
+	opt.size = sizeof(SceKernelAllocMemBlockOpt);
+	opt.attr = SCE_KERNEL_ALLOC_MEMBLOCK_ATTR_HAS_ALIGNMENT;
+	opt.alignment = align;
+	SceUID memblock = sceKernelAllocMemBlock("Video Memblock", SCE_KERNEL_MEMBLOCK_TYPE_USER_CDRAM_RW, size, &opt);
+	if (memblock < 0) {
+		return NULL;
+	}
+	sceKernelGetMemBlockBase(memblock, &res);
+	sceGxmMapMemory(res, size, (SceGxmMemoryAttribFlags)(SCE_GXM_MEMORY_ATTRIB_READ | SCE_GXM_MEMORY_ATTRIB_WRITE));
+	if (gpu_alloc_tracked_count < GPU_ALLOC_TRACK_MAX) {
+		gpu_alloc_tracked[gpu_alloc_tracked_count++] = res;
+	}
+	return res;
+}
+
+static void gpu_free_one(void *ptr) {
+	SceUID memblock = sceKernelFindMemBlockByAddr(ptr, 0);
+	sceGxmUnmapMemory(ptr);
+	sceKernelFreeMemBlock(memblock);
+}
+
+static void gpu_alloc_sweep() {
+	for (int i = 0; i < gpu_alloc_tracked_count; i++) {
+		gpu_free_one(gpu_alloc_tracked[i]);
+	}
+	gpu_alloc_tracked_count = 0;
 }
 
 void gpu_free(void *p, void *ptr) {
-	glFinish();
-	vglFree(ptr);
+	for (int i = 0; i < gpu_alloc_tracked_count; i++) {
+		if (gpu_alloc_tracked[i] == ptr) {
+			gpu_alloc_tracked[i] = gpu_alloc_tracked[--gpu_alloc_tracked_count];
+			break;
+		}
+	}
+	gpu_free_one(ptr);
 }
 
 void video_events_handle(void* jumpback, int32_t event_type, int32_t src, void *data) {
@@ -225,6 +264,7 @@ void video_close() {
 			sceKernelWaitThreadEnd(video_stream_thid, NULL, NULL);
 		}
 		sceAvPlayerClose(movie_player);
+		gpu_alloc_sweep();
 		player_state = PLAYER_INACTIVE;
 		glDeleteTextures(VIDEO_BUFFERS_NUM, movie_frame);
 	}
@@ -240,7 +280,7 @@ bool video_open(const char *path) {
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 8, 8, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 		movie_tex[i] = vglGetGxmTexture(GL_TEXTURE_2D);
 	}
-	
+
 	// Check if the supplied path is a remote video
 	is_local = strncmp(path, "http", 4);
 	if (!is_local) {
@@ -269,11 +309,12 @@ bool video_open(const char *path) {
 		playerInit.fileReplacement.readOffset = video_stream_read;
 		playerInit.fileReplacement.size = video_stream_size;
 		playerInit.eventReplacement.eventCallback = video_events_handle;
-		
+
 		movie_player = sceAvPlayerInit(&playerInit);
 		int add_res = sceAvPlayerAddSource(movie_player, "remote_stream.mp4"); // sceAvPlayer needs the source to end with ".mp4" for some reasons...
 		if (add_res < 0) {
 			sceAvPlayerClose(movie_player);
+			gpu_alloc_sweep();
 			glDeleteTextures(VIDEO_BUFFERS_NUM, movie_frame);
 			return false;
 		}
@@ -287,10 +328,33 @@ bool video_open(const char *path) {
 		int add_res = sceAvPlayerAddSource(movie_player, path);
 		if (add_res < 0) {
 			sceAvPlayerClose(movie_player);
+			gpu_alloc_sweep();
 			glDeleteTextures(VIDEO_BUFFERS_NUM, movie_frame);
 			return false;
 		}
 		sceAvPlayerSetLooping(movie_player, 1);
+
+		player_state = PLAYER_ACTIVE;
+		uint64_t wait_start = sceKernelGetProcessTimeWide();
+		bool got_frame = false;
+		while (sceKernelGetProcessTimeWide() - wait_start < FIRST_FRAME_TIMEOUT_US) {
+			if (sceAvPlayerIsActive(movie_player)) {
+				SceAvPlayerFrameInfo frame;
+				if (sceAvPlayerGetVideoData(movie_player, &frame)) {
+					got_frame = true;
+					break;
+				}
+			}
+			sceKernelDelayThread(10000);
+		}
+		if (!got_frame) {
+			player_state = PLAYER_INACTIVE;
+			sceAvPlayerClose(movie_player);
+			gpu_alloc_sweep();
+			glDeleteTextures(VIDEO_BUFFERS_NUM, movie_frame);
+			return false;
+		}
+		return true;
 	}
 
 	player_state = PLAYER_ACTIVE;
@@ -320,7 +384,7 @@ GLuint video_get_frame(int *width, int *height) {
 			finished = true;
 		}
 	}
-	
+
 	return 0xDEADBEEF;
 }
 
