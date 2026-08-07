@@ -74,6 +74,14 @@ It's also possible to add more blacklisted homebrews (for example, if you use a 
 
 ## Changelog
 
+### v.2.8.3
+- Fixed some Vita homebrews (e.g. Freegemas, OceanPop) failing to install with "The installation
+  process failed." - their release packages wrap the `.vpk` one or more folders deep inside the
+  zip (e.g. `game-vita/game.vpk`), and the fallback that looks for a nested `.vpk` when there's no
+  `eboot.bin` at the top level only checked the top folder itself, never its subfolders, so it
+  silently found nothing and installation failed at the promotion step. It now searches
+  subfolders too.
+
 ### v.2.8.2
 - Fixed animated theme backgrounds (and homebrew trailers) never actually playing on real hardware
   while working fine in the Vita3K emulator - a permanent black/static screen instead. The video
