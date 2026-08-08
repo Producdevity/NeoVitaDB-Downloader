@@ -447,7 +447,7 @@ bool download_file(char *url, char *text, bool cancelable, int custom_index, int
 	info.size = sizeof(SceKernelThreadInfo);
 	int res = 0;
 	SceUID thd = sceKernelCreateThread("Generic Downloader", &downloadThread, 0x10000100, 0x100000, 0, 0, NULL);
-	sprintf((char *)generic_url, url);
+	sprintf((char *)generic_url, "%s", url);
 	sceKernelStartThread(thd, 0, NULL);
 	do {
 		int pass_idx = custom_index >= 0 ? custom_index : downloader_pass;
@@ -471,7 +471,7 @@ void silent_download(char *url) {
 	info.size = sizeof(SceKernelThreadInfo);
 	int res = 0;
 	SceUID thd = sceKernelCreateThread("Generic Downloader", &downloadMemThread, 0x10000100, 0x100000, 0, 0, NULL);
-	sprintf((char *)generic_url, url);
+	sprintf((char *)generic_url, "%s", url);
 	sceKernelStartThread(thd, 0, NULL);
 	do {
 		res = sceKernelGetThreadInfo(thd, &info);
@@ -486,7 +486,7 @@ void early_download_file(char *url, char *text) {
 	info.size = sizeof(SceKernelThreadInfo);
 	int res = 0;
 	SceUID thd = sceKernelCreateThread("Generic Downloader", &downloadThread, 0x10000100, 0x100000, 0, 0, NULL);
-	sprintf((char *)generic_url, url);
+	sprintf((char *)generic_url, "%s", url);
 	sceKernelStartThread(thd, 0, NULL);
 	init_progressbar_dialog(text);
 	do {
@@ -509,6 +509,6 @@ void stream_video(char *url) {
 	is_canceled = false;
 	is_cancelable = true;
 	video_stream_thid = sceKernelCreateThread("Video Streamer", &streamMemThread, 0x10000100, 0x100000, 0, 0, NULL);
-	sprintf((char *)generic_url, url);
+	sprintf((char *)generic_url, "%s", url);
 	sceKernelStartThread(video_stream_thid, 0, NULL);
 }
