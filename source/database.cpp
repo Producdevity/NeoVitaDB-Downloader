@@ -270,7 +270,7 @@ bool populate_apps_database(const char *file, bool is_psp) {
 			node->next_clash = nullptr;
 			node->prev_clash = nullptr;
 			ptr = get_value_from_json(node->icon, ptr, "icon", nullptr);
-			if (!strstr(icons_db, node->icon)) {
+			if (!strstr(icons_db, node->icon) && missing_icons_num < 2048) {
 				missing_icons[missing_icons_num++] = node;
 				//printf("%s is missing [%s]\n", node->icon, name);
 			}
@@ -505,7 +505,7 @@ bool populate_apps_database_vitadb_legacy(const char *file, bool is_psp) {
 			char icon_path[300];
 			sprintf(icon_path, "%sicons/%c%c/%s", catalog_dir, node->icon[0], node->icon[1], node->icon);
 			SceIoStat icon_st;
-			if (sceIoGetstat(icon_path, &icon_st) < 0)
+			if (sceIoGetstat(icon_path, &icon_st) < 0 && missing_icons_num < 2048)
 				missing_icons[missing_icons_num++] = node;
 			ptr = get_value_from_json(version, ptr, "version", nullptr);
 			ptr = get_value_from_json(node->author, ptr, "author", nullptr);
