@@ -1597,13 +1597,13 @@ extract_libshacccg:
 				ImGui::TextColored(TextLabel, "Downloads:");
 				ImGui::SetCursorPosY(22);
 				ImGui::SetCursorPosX(320);
-				ImGui::Text(hovered->downloads);
+				ImGui::Text(strcmp(hovered->downloads, "0") ? hovered->downloads : "Unavailable");
 				ImGui::SetCursorPosY(38);
 				ImGui::SetCursorPosX(320);
 				ImGui::TextColored(TextLabel, "Likes:");
 				ImGui::SetCursorPosY(54);
 				ImGui::SetCursorPosX(320);
-				ImGui::Text(hovered->likes);
+				ImGui::Text(strcmp(hovered->likes, "0") ? hovered->likes : "Unavailable");
 				if (mode_idx == MODE_VITA_HBS) {
 					ImGui::SetCursorPosY(70);
 					ImGui::SetCursorPosX(320);
