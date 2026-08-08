@@ -133,8 +133,14 @@ static bool download_icons_bulk(bool is_psp) {
 		sceIoRemove(TEMP_DOWNLOAD_NAME);
 		return false;
 	}
+	// Both platforms' icons live under the same local "icons/" folder -
+	// icons_psp/ is a server-side publish path (and the CATALOG_PSP_ICON_FMT
+	// download URL) only, never a local one; main.cpp's texture loader and
+	// the per-icon download loop both always read/write "icons/" regardless
+	// of platform, so this has to match or bulk-downloaded PSP icons end up
+	// somewhere nothing ever looks.
 	char icons_dir[288];
-	sprintf(icons_dir, "%s%s/", catalog_dir, is_psp ? "icons_psp" : "icons");
+	sprintf(icons_dir, "%sicons/", catalog_dir);
 	bool ok = extract_zip_file(TEMP_DOWNLOAD_NAME, icons_dir, true, false);
 	sceIoRemove(TEMP_DOWNLOAD_NAME);
 	return ok;
