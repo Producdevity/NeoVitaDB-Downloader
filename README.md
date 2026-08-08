@@ -73,6 +73,17 @@ By default, a couple of homebrews are blacklisted from this process either cause
 It's also possible to add more blacklisted homebrews (for example, if you use a modded build which would be tagged as outdated by VitaDB Downloader). To do so, create the file `ux0:data/NeoVitaDB/daemon_blacklist.txt` and add inside it a list of Title ID of the homebrews you want to blacklist in this format `ABCD12345;ABCD12346;ABCD12347`.
 
 ## Changelog
+### v.2.8.6
+- No longer sends a spoofed Chrome user agent on every request - some servers were flagging it as
+  bot traffic since the rest of the request didn't look like a real browser. Requests now identify
+  themselves as the app instead.
+- Fixed PSP icons fetched by the new bulk download (see v.2.8.5) landing in a local folder nothing
+  else ever looks in, so they never actually showed up despite downloading successfully.
+- Fixed the bulk icon download re-fetching the same icons on every single launch instead of only
+  when actually needed - extracting one platform's icon bundle was wiping out the record of the
+  other platform's icons already having been downloaded, since both share the same on-device
+  tracking file.
+
 ### v.2.8.5
 - Fixed a crash that could happen while downloading the app list or missing icons - any URL
   containing a `%` character (common in percent-encoded filenames) was passed straight to
