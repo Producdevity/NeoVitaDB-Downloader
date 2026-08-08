@@ -73,6 +73,14 @@ By default, a couple of homebrews are blacklisted from this process either cause
 It's also possible to add more blacklisted homebrews (for example, if you use a modded build which would be tagged as outdated by VitaDB Downloader). To do so, create the file `ux0:data/NeoVitaDB/daemon_blacklist.txt` and add inside it a list of Title ID of the homebrews you want to blacklist in this format `ABCD12345;ABCD12346;ABCD12347`.
 
 ## Changelog
+### v.2.9.0
+- On first launch (and every launch until accepted), the app now shows a disclaimer explaining
+  that catalog homebrew comes from community sources not individually vetted by the developer,
+  and that installing it is done at your own risk. Declining closes the app without saving
+  acceptance, so it's shown again next time; nothing else runs until it's accepted.
+- Downloads and Likes now show "Unavailable" instead of "0" when there's no real count for an
+  entry, instead of displaying a number that could be mistaken for an actual zero.
+
 ### v.2.8.6
 - No longer sends a spoofed Chrome user agent on every request - some servers were flagging it as
   bot traffic since the rest of the request didn't look like a real browser. Requests now identify
