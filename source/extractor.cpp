@@ -197,7 +197,11 @@ bool extract_zip_file(char *file, char *dir, bool indexing, bool cancelable) {
 	if (indexing) {
 		char icons_db_path[288];
 		sprintf(icons_db_path, "%sicons.db", catalog_dir);
-		f2 = fopen(icons_db_path, "w");
+		// icons.db is shared between vita and psp (both platforms' icons
+		// live under the same local icons/ folder) - truncating it here
+		// would wipe out whichever platform's entries aren't in this
+		// particular zip, making them look "missing" again next run.
+		f2 = fopen(icons_db_path, "a");
 	}
 	for (int zip_idx = 0; zip_idx < num_files; ++zip_idx) {
 		unzGetCurrentFileInfo(zipfile, &file_info, fname, 512, NULL, 0, NULL, 0);
