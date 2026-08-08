@@ -958,6 +958,32 @@ extract_libshacccg:
 	audio_thd = sceKernelCreateThread("Audio Playback", &musicThread, 0x10000100, 0x100000, 0, 0, NULL);
 	sceKernelStartThread(audio_thd, 0, NULL);
 	
+	// First-boot disclaimer: must be accepted before anything else runs.
+	// Declining closes the app immediately without writing the acceptance
+	// file, so it's shown again on every subsequent launch until accepted.
+	if (sceIoGetstat("ux0:data/NeoVitaDB/eula_accepted.txt", &st) < 0) {
+		// SCE_MSG_DIALOG_USER_MSG_SIZE is 512 bytes total - keep this short.
+		init_interactive_msg_dialog("%s",
+			"NeoVitaDB Downloader installs community-made homebrew from GitHub and other public "
+			"sources, not individually vetted by the developer.\n\n"
+			"By accepting, you acknowledge homebrew installation carries inherent risk (bugs, "
+			"instability, or rarely malicious content), you install entirely at your own risk, and "
+			"the developer accepts no liability for any damage to your device or data.\n\n"
+			"Accept these terms?");
+		while (sceMsgDialogGetStatus() != SCE_COMMON_DIALOG_STATUS_FINISHED) {
+			glClear(GL_COLOR_BUFFER_BIT);
+			vglSwapBuffers(GL_TRUE);
+		}
+		SceMsgDialogResult eula_res;
+		memset(&eula_res, 0, sizeof(SceMsgDialogResult));
+		sceMsgDialogGetResult(&eula_res);
+		sceMsgDialogTerm();
+		if (eula_res.buttonId != SCE_MSG_DIALOG_BUTTON_ID_YES)
+			sceKernelExitProcess(0);
+		SceUID eula_fp = sceIoOpen("ux0:data/NeoVitaDB/eula_accepted.txt", SCE_O_WRONLY | SCE_O_CREAT | SCE_O_TRUNC, 0777);
+		sceIoClose(eula_fp);
+	}
+
 	// Daemon popup
 	SceCtrlData pad;
 	sceCtrlPeekBufferPositive(0, &pad, 1);
