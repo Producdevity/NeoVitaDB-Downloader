@@ -74,6 +74,8 @@ extern char CATALOG_PSP_LIST[CATALOG_BASE_SIZE + 16];
 
 // Assets, addressed by the paths stored in each entry.
 extern char CATALOG_ICONS_DB[CATALOG_BASE_SIZE + 16];
+extern char CATALOG_ICONS_VITA_ZIP[CATALOG_BASE_SIZE + 24];
+extern char CATALOG_ICONS_PSP_ZIP[CATALOG_BASE_SIZE + 24];
 extern char CATALOG_ICON_FMT[CATALOG_BASE_SIZE + 16];
 extern char CATALOG_PSP_ICON_FMT[CATALOG_BASE_SIZE + 24];
 extern char CATALOG_SHOT_FMT[CATALOG_BASE_SIZE + 16];

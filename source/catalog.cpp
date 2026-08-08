@@ -32,6 +32,8 @@ bool using_vitadb_legacy;
 char CATALOG_VITA_LIST[CATALOG_BASE_SIZE + 16];
 char CATALOG_PSP_LIST[CATALOG_BASE_SIZE + 16];
 char CATALOG_ICONS_DB[CATALOG_BASE_SIZE + 16];
+char CATALOG_ICONS_VITA_ZIP[CATALOG_BASE_SIZE + 24];
+char CATALOG_ICONS_PSP_ZIP[CATALOG_BASE_SIZE + 24];
 char CATALOG_ICON_FMT[CATALOG_BASE_SIZE + 16];
 char CATALOG_PSP_ICON_FMT[CATALOG_BASE_SIZE + 24];
 char CATALOG_SHOT_FMT[CATALOG_BASE_SIZE + 16];
@@ -147,6 +149,8 @@ void init_catalog() {
 		sprintf(CATALOG_VITA_LIST, "%s/list_hbs_json.php", catalog_base);
 		sprintf(CATALOG_PSP_LIST, "%s/list_psp_hbs_json.php", catalog_base);
 		CATALOG_ICONS_DB[0] = 0;
+		CATALOG_ICONS_VITA_ZIP[0] = 0;
+		CATALOG_ICONS_PSP_ZIP[0] = 0;
 		sprintf(CATALOG_ICON_FMT, "%s/icons/%%s", catalog_base);
 		sprintf(CATALOG_PSP_ICON_FMT, "%s/icons/%%s", catalog_base);
 		sprintf(CATALOG_SHOT_FMT, "%s/%%s", catalog_base);
@@ -157,6 +161,8 @@ void init_catalog() {
 		sprintf(CATALOG_VITA_LIST, "%s/vita.json", catalog_base);
 		sprintf(CATALOG_PSP_LIST, "%s/psp.json", catalog_base);
 		sprintf(CATALOG_ICONS_DB, "%s/icons.db", catalog_base);
+		sprintf(CATALOG_ICONS_VITA_ZIP, "%s/icons_vita.zip", catalog_base);
+		sprintf(CATALOG_ICONS_PSP_ZIP, "%s/icons_psp.zip", catalog_base);
 		sprintf(CATALOG_ICON_FMT, "%s/icons/%%s", catalog_base);
 		sprintf(CATALOG_PSP_ICON_FMT, "%s/icons_psp/%%s", catalog_base);
 		sprintf(CATALOG_SHOT_FMT, "%s/%%s", catalog_base);

@@ -28,6 +28,7 @@
 #include "catalog.h"
 #include "database.h"
 #include "dialogs.h"
+#include "extractor.h"
 #include "network.h"
 #include "utils.h"
 
@@ -111,6 +112,32 @@ static int clashThread(unsigned int args, void *arg) {
 	}
 	//printf("clash thread ended\n");
 	return sceKernelExitDeleteThread(0);
+}
+
+// Grabs every icon for a platform in one request/extract instead of one
+// HTTP round-trip per missing icon - the difference between a handful of
+// requests and thousands on a fresh install or catalog switch, where
+// virtually every icon is "missing". indexing=true on extract_zip_file
+// shards into <shard>/<file> the same way the per-icon path does and
+// rewrites icons.db to match, so this is only meant for populating from
+// (near-)empty, not for topping up a handful of new icons - the per-icon
+// loop stays for that. Returns false (falls back to the per-icon loop)
+// if the catalog doesn't publish this zip, or the download/extract fails.
+static bool download_icons_bulk(bool is_psp) {
+	char *zip_url = is_psp ? CATALOG_ICONS_PSP_ZIP : CATALOG_ICONS_VITA_ZIP;
+	if (!zip_url[0])
+		return false;
+	download_file(zip_url, "Downloading icons");
+	SceIoStat st;
+	if (sceIoGetstat(TEMP_DOWNLOAD_NAME, &st) < 0 || st.st_size == 0) {
+		sceIoRemove(TEMP_DOWNLOAD_NAME);
+		return false;
+	}
+	char icons_dir[288];
+	sprintf(icons_dir, "%s%s/", catalog_dir, is_psp ? "icons_psp" : "icons");
+	bool ok = extract_zip_file(TEMP_DOWNLOAD_NAME, icons_dir, true, false);
+	sceIoRemove(TEMP_DOWNLOAD_NAME);
+	return ok;
 }
 
 static char *get_value_from_json(char *dst, char *src, char *val, char **new_ptr) {
@@ -445,20 +472,22 @@ bool populate_apps_database(const char *file, bool is_psp) {
 		}
 		
 		if (!update_detected && missing_icons_num > 0) {
-			FILE *icons_db_f = fopen(icons_db_path, "a");
-			for (int i = 0; i < missing_icons_num; i++) {
-				char download_link[512];
-				sprintf(download_link, is_psp ? CATALOG_PSP_ICON_FMT : CATALOG_ICON_FMT, missing_icons[i]->icon);
-				download_file(download_link, "Downloading missing icons", false, i + 1, missing_icons_num);
-				sprintf(download_link, "%sicons/%c%c", catalog_dir, missing_icons[i]->icon[0], missing_icons[i]->icon[1]);
-				sceIoMkdir(download_link, 0777);
-				sprintf(download_link, "%sicons/%c%c/%s", catalog_dir, missing_icons[i]->icon[0], missing_icons[i]->icon[1], missing_icons[i]->icon);
-				if (sceIoRename(TEMP_DOWNLOAD_NAME, download_link) >= 0) {
-					fprintf(icons_db_f, "%s\n", download_link);
-					fflush(icons_db_f);
+			if (missing_icons_num < 20 || !download_icons_bulk(is_psp)) {
+				FILE *icons_db_f = fopen(icons_db_path, "a");
+				for (int i = 0; i < missing_icons_num; i++) {
+					char download_link[512];
+					sprintf(download_link, is_psp ? CATALOG_PSP_ICON_FMT : CATALOG_ICON_FMT, missing_icons[i]->icon);
+					download_file(download_link, "Downloading missing icons", false, i + 1, missing_icons_num);
+					sprintf(download_link, "%sicons/%c%c", catalog_dir, missing_icons[i]->icon[0], missing_icons[i]->icon[1]);
+					sceIoMkdir(download_link, 0777);
+					sprintf(download_link, "%sicons/%c%c/%s", catalog_dir, missing_icons[i]->icon[0], missing_icons[i]->icon[1], missing_icons[i]->icon);
+					if (sceIoRename(TEMP_DOWNLOAD_NAME, download_link) >= 0) {
+						fprintf(icons_db_f, "%s\n", download_link);
+						fflush(icons_db_f);
+					}
 				}
+				fclose(icons_db_f);
 			}
-			fclose(icons_db_f);
 		}
 	}
 	vglFree(icons_db);
