@@ -73,6 +73,20 @@ By default, a couple of homebrews are blacklisted from this process either cause
 It's also possible to add more blacklisted homebrews (for example, if you use a modded build which would be tagged as outdated by VitaDB Downloader). To do so, create the file `ux0:data/NeoVitaDB/daemon_blacklist.txt` and add inside it a list of Title ID of the homebrews you want to blacklist in this format `ABCD12345;ABCD12346;ABCD12347`.
 
 ## Changelog
+### v.2.8.5
+- Fixed a crash that could happen while downloading the app list or missing icons - any URL
+  containing a `%` character (common in percent-encoded filenames) was passed straight to
+  `sprintf()` as the format string instead of as an argument, so those characters were
+  interpreted as format specifiers instead of literal text.
+- Fixed a crash that could happen when most or all icons needed downloading at once (e.g. a
+  fresh install or switching to a catalog you've never used before) - the list of icons still
+  to fetch was collected into a fixed-size buffer with no bounds check, so a large enough
+  catalog could overflow it.
+- Missing icons are now fetched in a single bundled download instead of one request per icon
+  when there are many of them, which is both faster and avoids the two issues above in the
+  first place. Falls back to downloading them individually if the catalog doesn't support this
+  yet or the bundle can't be fetched.
+
 ### v.2.8.4
 - Fixed switching to a different catalog (from the dropdown next to the Search bar) always
   reverting back to the official catalog - the fallback that's meant to apply only when

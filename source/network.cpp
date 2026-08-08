@@ -27,6 +27,9 @@
 #include "catalog.h"
 #include "dialogs.h"
 #include "network.h"
+#include "utils.h"
+
+#define NEOVITADB_USER_AGENT "NeoVitaDB-Downloader/" VERSION " (PS Vita; +https://github.com/robin994/NeoVitaDB-Downloader)"
 
 //#define DEBUG_NET // Uncomment this to enable downloader debugging
 
@@ -177,7 +180,7 @@ static void startDownload(const char *url, time_t timestamp = 0) {
 	curl_easy_reset(curl_handle);
 	curl_easy_setopt(curl_handle, CURLOPT_URL, url);
 	curl_easy_setopt(curl_handle, CURLOPT_HTTPGET, 1L);
-	curl_easy_setopt(curl_handle, CURLOPT_USERAGENT, "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36");
+	curl_easy_setopt(curl_handle, CURLOPT_USERAGENT, NEOVITADB_USER_AGENT);
 	curl_easy_setopt(curl_handle, CURLOPT_SSL_VERIFYHOST, 0L);
 	curl_easy_setopt(curl_handle, CURLOPT_SSL_VERIFYPEER, 0L);
 	curl_easy_setopt(curl_handle, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1_2);
@@ -199,7 +202,7 @@ static void startDownload(const char *url, time_t timestamp = 0) {
 	struct curl_slist *headerchunk = NULL;
 	headerchunk = curl_slist_append(headerchunk, "Accept: */*");
 	headerchunk = curl_slist_append(headerchunk, "Content-Type: application/json");
-	headerchunk = curl_slist_append(headerchunk, "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36");
+	headerchunk = curl_slist_append(headerchunk, "User-Agent: " NEOVITADB_USER_AGENT);
 	headerchunk = curl_slist_append(headerchunk, "Content-Length: 0");
 	curl_easy_setopt(curl_handle, CURLOPT_HTTPHEADER, headerchunk);
 	CURLcode res = curl_easy_perform(curl_handle);
@@ -213,7 +216,7 @@ static void startStream(const char *url) {
 	curl_easy_reset(curl_handle);
 	curl_easy_setopt(curl_handle, CURLOPT_URL, url);
 	curl_easy_setopt(curl_handle, CURLOPT_HTTPGET, 1L);
-	curl_easy_setopt(curl_handle, CURLOPT_USERAGENT, "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36");
+	curl_easy_setopt(curl_handle, CURLOPT_USERAGENT, NEOVITADB_USER_AGENT);
 	curl_easy_setopt(curl_handle, CURLOPT_SSL_VERIFYHOST, 0L);
 	curl_easy_setopt(curl_handle, CURLOPT_SSL_VERIFYPEER, 0L);
 	curl_easy_setopt(curl_handle, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1_2);
@@ -231,7 +234,7 @@ static void startStream(const char *url) {
 	struct curl_slist *headerchunk = NULL;
 	headerchunk = curl_slist_append(headerchunk, "Accept: */*");
 	headerchunk = curl_slist_append(headerchunk, "Content-Type: application/json");
-	headerchunk = curl_slist_append(headerchunk, "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36");
+	headerchunk = curl_slist_append(headerchunk, "User-Agent: " NEOVITADB_USER_AGENT);
 	headerchunk = curl_slist_append(headerchunk, "Content-Length: 0");
 	curl_easy_setopt(curl_handle, CURLOPT_HTTPHEADER, headerchunk);
 	curl_easy_perform(curl_handle);
